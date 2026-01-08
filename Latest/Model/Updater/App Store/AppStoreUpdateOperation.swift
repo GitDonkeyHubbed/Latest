@@ -1,5 +1,5 @@
 //
-//  MacAppStoreUpdateOperation.swift
+//  AppStoreUpdateOperation.swift
 //  Latest
 //
 //  Created by Max Langer on 01.07.19.
@@ -10,7 +10,7 @@ import CommerceKit
 import StoreFoundation
 
 /// The operation updating Mac App Store apps.
-class MacAppStoreUpdateOperation: UpdateOperation, @unchecked Sendable {
+class AppStoreUpdateOperation: UpdateOperation, @unchecked Sendable {
 
 	/// The purchase associated with the to be updated app.
 	private var purchase: SSPurchase!
@@ -67,7 +67,7 @@ class MacAppStoreUpdateOperation: UpdateOperation, @unchecked Sendable {
 
 // MARK: - Download Observer
 
-extension MacAppStoreUpdateOperation: CKDownloadQueueObserver {
+extension AppStoreUpdateOperation: CKDownloadQueueObserver {
 
 	func downloadQueue(_ downloadQueue: CKDownloadQueue!, statusChangedFor download: SSDownload!) {
 		// Cancel download if the operation has been cancelled

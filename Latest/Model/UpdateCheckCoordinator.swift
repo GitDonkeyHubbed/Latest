@@ -143,7 +143,7 @@ extension UpdateCheckCoordinator {
 	/// List of available update checking operations.
 	private static var availableOperations: [UpdateCheckerOperation.Type] {
 		return [
-			MacAppStoreUpdateCheckerOperation.self,
+			AppStoreUpdateCheckerOperation.self,
 			SparkleUpdateCheckerOperation.self,
 			HomebrewCheckerOperation.self
 		]

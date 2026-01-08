@@ -1,5 +1,5 @@
 //
-//  MacAppStoreUpdateCheckerOperation.swift
+//  AppStoreUpdateCheckerOperation.swift
 //  Latest
 //
 //  Created by Max Langer on 03.10.19.
@@ -11,7 +11,7 @@ import Cocoa
 let MalformedURLError = NSError(domain: NSURLErrorDomain, code: NSURLErrorUnsupportedURL, userInfo: nil)
 
 /// The operation for checking for updates for a Mac App Store app.
-class MacAppStoreUpdateCheckerOperation: StatefulOperation, UpdateCheckerOperation, @unchecked Sendable {
+class AppStoreUpdateCheckerOperation: StatefulOperation, UpdateCheckerOperation, @unchecked Sendable {
 	
 	// MARK: - Update Check
 	
@@ -92,7 +92,7 @@ class MacAppStoreUpdateCheckerOperation: StatefulOperation, UpdateCheckerOperati
 	
 }
 
-extension MacAppStoreUpdateCheckerOperation {
+extension AppStoreUpdateCheckerOperation {
 	
 	/// Returns a proper update object from the given app store entry.
 	private func update(from entry: AppStoreEntry) -> App.Update {
@@ -105,7 +105,7 @@ extension MacAppStoreUpdateCheckerOperation {
 		} else {
 			// Perform the update in-app
 			.builtIn(block: { app in
-				UpdateQueue.shared.addOperation(MacAppStoreUpdateOperation(bundleIdentifier: app.bundleIdentifier, appIdentifier: app.identifier, appStoreIdentifier: entry.appStoreIdentifier))
+				UpdateQueue.shared.addOperation(AppStoreUpdateOperation(bundleIdentifier: app.bundleIdentifier, appIdentifier: app.identifier, appStoreIdentifier: entry.appStoreIdentifier))
 			})
 
 		}
