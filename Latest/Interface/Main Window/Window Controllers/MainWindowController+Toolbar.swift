@@ -21,9 +21,7 @@ extension MainWindowController: NSToolbarDelegate {
 		]
 		
 		// Items sit in sidebar
-		if #available(macOS 11.0, *) {
-			items.append(.sidebarTrackingSeparator)
-		}
+		items.append(.sidebarTrackingSeparator)
 		
 		return items
 	}
@@ -39,23 +37,11 @@ extension MainWindowController: NSToolbarDelegate {
 		case .progressIndicatorItem:
 			item.view = progressIndicator
 		case .checkForUpdatesActionItem:
-			if #available(macOS 11.0, *) {
-				item.image = NSImage(systemSymbolName: "arrow.clockwise", accessibilityDescription: nil)
-			} else {
-				item.image = NSImage(named: NSImage.touchBarRefreshTemplateName)
-			}
-			
+			item.image = NSImage(systemSymbolName: "arrow.clockwise", accessibilityDescription: nil)
 			item.toolTip = NSLocalizedString("CheckForUpdatesToolbarItemToolTip", comment: "Tool tip of a toolbar button that checks for updates")
 			item.action = #selector(reload(_:))
 		case .updateAllActionItem:
-			if #available(macOS 13.0, *) {
-				item.image = NSImage(named: "custom.arrow.down.square.stack")
-			} else if #available(macOS 11.0, *) {
-				item.image = NSImage(systemSymbolName: "arrow.down.app", accessibilityDescription: nil)
-			} else {
-				item.image = NSImage(named: NSImage.touchBarDownloadTemplateName)
-			}
-			
+			item.image = NSImage(named: "custom.arrow.down.square.stack")
 			item.toolTip = NSLocalizedString("UpdateAllToolbarItemToolTip", comment: "Tool tip of a toolbar button that performs updates for all apps with update available")
 			item.action = #selector(updateAll(_:))
 		default:

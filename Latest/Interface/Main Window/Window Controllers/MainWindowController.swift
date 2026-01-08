@@ -58,13 +58,8 @@ class MainWindowController: NSWindowController, NSMenuItemValidation, NSMenuDele
     
 		self.window?.titlebarAppearsTransparent = true
 		self.window?.title = Bundle.main.localizedInfoDictionary?[kCFBundleNameKey as String] as! String
+		self.window?.toolbarStyle = .unified
 		
-		if #available(macOS 11.0, *) {
-			self.window?.toolbarStyle = .unified
-		} else {
-			self.window?.titleVisibility = .hidden
-		}
-        
 		// Set ourselves as the view menu delegate
 		NSApplication.shared.mainMenu?.item(at: MainMenuItem.view.rawValue)?.submenu?.delegate = self
 		

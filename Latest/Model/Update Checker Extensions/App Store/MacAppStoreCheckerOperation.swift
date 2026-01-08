@@ -140,7 +140,7 @@ extension MacAppStoreUpdateCheckerOperation {
 		}
 
 		// Add parameters
-		let languageCode = Locale.current.regionCode ?? "US"
+		let languageCode = Locale.current.region?.identifier ?? "US"
 		var components = URLComponents(url: endpoint, resolvingAgainstBaseURL: false)
 		components?.queryItems = [
 			URLQueryItem(name: "limit", value: "1"),
