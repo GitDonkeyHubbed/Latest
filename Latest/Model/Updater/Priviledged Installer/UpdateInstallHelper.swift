@@ -10,7 +10,7 @@ import AppKit
 import ServiceManagement
 
 /// Manages the privileged helper daemon used to install App Store updates via XPC.
-class InstallHelper {
+actor InstallHelper {
 	
 	/// The shared instance used for installing packages.
 	static let shared = InstallHelper()
@@ -55,10 +55,10 @@ class InstallHelper {
 	}
 	
 	/// Re-registers the helper to ensure it is available for use.
-	private static func ensureAvailability() async throws {
-		try verifyAvailability()
+	private func ensureAvailability() async throws {
+		try Self.verifyAvailability()
 		
-		let service = helperService
+		let service = Self.helperService
 		
 		// Services may be unreliable even though reported as enabled, so always re-register to ensure they are working
 		try await service.unregister()
@@ -71,7 +71,7 @@ class InstallHelper {
 	
 	/// Installs an App Store update package at the given target URL via the privileged helper.
 	func installPackage(at url: URL, targetURL: String, receiptData: Data, receiptURL: URL) async throws {
-		try await Self.ensureAvailability()
+		try await ensureAvailability()
 		
 		let connection = NSXPCConnection(machServiceName: Self.installHelperName)
 		connection.remoteObjectInterface = NSXPCInterface(with: UpdateInstallerProtocol.self)
