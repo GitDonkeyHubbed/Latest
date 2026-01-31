@@ -160,8 +160,8 @@ extension App {
 	}
 	
 	/// Updates the app. This is a sub-classing hook. The default implementation opens the app.
-	final func performUpdate() {
-		self.update?.perform()
+	final func performUpdate(isBulkUpdate: Bool = false) {
+		self.update?.perform(isBulkUpdate: isBulkUpdate)
 	}
 	
 	/// Cancels the ongoing app update.

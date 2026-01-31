@@ -7,6 +7,7 @@
 //
 
 import Cocoa
+import ServiceManagement
 
 let MalformedURLError = NSError(domain: NSURLErrorDomain, code: NSURLErrorUnsupportedURL, userInfo: nil)
 
@@ -97,20 +98,33 @@ extension AppStoreUpdateCheckerOperation {
 	/// Returns a proper update object from the given app store entry.
 	private func update(from entry: AppStoreEntry) -> App.Update {
 		let version = Version(versionNumber: entry.versionNumber, buildNumber: nil)
-		let action: App.Update.Action = if Self.isIOSAppBundle(at: app.fileURL) {
+		let action: App.Update.Action = if Self.isIOSAppBundle(at: app.fileURL) || AppStoreUpdateSettings.alwaysPerformManualUpdates.active {
 			// iOS Apps: Open App Store page where the user can update manually. The update operation does not work for them.
 			.external(label: NSLocalizedString("AppStoreSource", comment: "The source name of apps loaded from the App Store."), block: { app in
-				NSWorkspace.shared.open(entry.pageURL)
+				Self.openAppStorePage(for: entry)
 			})
 		} else {
 			// Perform the update in-app
 			.builtIn(block: { app in
-				UpdateQueue.shared.addOperation(AppStoreUpdateOperation(bundleIdentifier: app.bundleIdentifier, appIdentifier: app.identifier, appStoreIdentifier: entry.appStoreIdentifier))
+				Self.updateApp(app, entry: entry)
 			})
 
 		}
 		
 		return App.Update(app: self.app, remoteVersion: version, minimumOSVersion: entry.minimumOSVersion, source: .appStore, date: entry.date, releaseNotes: entry.releaseNotes, updateAction: action)
+	}
+	
+	private static func updateApp(_ app: App.Bundle, entry: AppStoreEntry) {
+		do {
+			try AppStoreUpdateOperation.prepareForUpdates()
+			UpdateQueue.shared.addOperation(AppStoreUpdateOperation(bundleIdentifier: app.bundleIdentifier, installURL: app.fileURL, appIdentifier: app.identifier, appStoreIdentifier: entry.appStoreIdentifier))
+		} catch {
+			UpdateInstallHelperAlert.present(with: error, fallbackURL: entry.pageURL)
+		}
+	}
+	
+	private static func openAppStorePage(for entry: AppStoreEntry) {
+		NSWorkspace.shared.open(entry.pageURL)
 	}
 	
 	/// Fetches update info and returns the result in the given completion handler.

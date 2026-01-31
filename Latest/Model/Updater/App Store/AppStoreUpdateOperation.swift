@@ -19,24 +19,46 @@ class AppStoreUpdateOperation: UpdateOperation, @unchecked Sendable {
 	private var observerIdentifier: CKDownloadQueueObserver?
 	
 	/// The app-store identifier for the related app.
-	private var itemIdentifier: UInt64
+	private let itemIdentifier: UInt64
+	
+	private let installURL: URL
+	
+	private var installerPackageURL: URL?
 
-	init(bundleIdentifier: String, appIdentifier: App.Bundle.Identifier, appStoreIdentifier: UInt64) {
+	init(bundleIdentifier: String, installURL: URL, appIdentifier: App.Bundle.Identifier, appStoreIdentifier: UInt64) {
+		self.installURL = installURL
 		self.itemIdentifier = appStoreIdentifier
 		super.init(bundleIdentifier: bundleIdentifier, appIdentifier: appIdentifier)
 	}
+	
+	static func prepareForUpdates() throws(InstallHelperError) {
+		// Framework can download and install apps automatically
+		if requiresManualInstallation {
+			try InstallHelper.verifyAvailability()
+		}
+	}
+	
+	fileprivate static let requiresManualInstallation: Bool = {
+		let version = ProcessInfo.processInfo.operatingSystemVersion
+		
+		return switch version.majorVersion {
+		case 14:
+			ProcessInfo.processInfo.isOperatingSystemAtLeast(.init(majorVersion: 14, minorVersion: 8, patchVersion: 2))
+		case 15:
+			ProcessInfo.processInfo.isOperatingSystemAtLeast(.init(majorVersion: 15, minorVersion: 7, patchVersion: 2))
+		default:
+			ProcessInfo.processInfo.isOperatingSystemAtLeast(.init(majorVersion: 26, minorVersion: 1, patchVersion: 0))
+		}
+	}()
 	
 	
 	// MARK: - Operation Overrides
 
 	override func execute() {
 		super.execute()
-
-		// Verify user is signed in
-		var storeAccount: ISStoreAccount?
 		
 		// Construct purchase to receive update
-		let purchase = SSPurchase(itemIdentifier: self.itemIdentifier, account: storeAccount)
+		let purchase = SSPurchase(itemIdentifier: self.itemIdentifier, account: nil)
 		CKPurchaseController.shared().perform(purchase, withOptions: 0) { [weak self] purchase, _, error, response in
 			guard let self = self else { return }
 
@@ -53,6 +75,10 @@ class AppStoreUpdateOperation: UpdateOperation, @unchecked Sendable {
 			}
 		}
 	}
+	
+	override func cancel() {
+		self.finish()
+	}
 
 	override func finish() {
 		if let observerIdentifier = self.observerIdentifier {
@@ -62,6 +88,23 @@ class AppStoreUpdateOperation: UpdateOperation, @unchecked Sendable {
 		super.finish()
 	}
 
+	
+	// MARK: - Manual Installation
+	
+	/// Adds a link to the downloaded app store package to retrieve it at a later time.
+	fileprivate static func snapshotAppStorePackage(at path: String) -> URL? {
+		do {
+			let packageURL = URL(fileURLWithPath: path)
+			let fileManager = FileManager.default
+			
+			let hardLinkURL = try fileManager.url(for: .itemReplacementDirectory, in: .userDomainMask, appropriateFor: packageURL, create: true).appending(path: packageURL.lastPathComponent, directoryHint: .notDirectory)
+			try fileManager.linkItem(at: packageURL, to: hardLinkURL)
+			
+			return hardLinkURL
+		} catch {
+			return nil
+		}
+	}
 }
 
 
@@ -77,24 +120,29 @@ extension AppStoreUpdateOperation: CKDownloadQueueObserver {
 			return
 		}
 
-		guard download.metadata.itemIdentifier == self.purchase.itemIdentifier,
-			let status = download.status else {
-				return
-		}
-
-		guard !status.isFailed && !status.isCancelled else {
-			downloadQueue.removeDownload(withItemIdentifier: download.metadata.itemIdentifier)
-			self.finish(with: status.error)
+		guard download.metadata.itemIdentifier == itemIdentifier, let status = download.status else {
 			return
 		}
-
-		switch status.activePhase.phaseType {
-		case 0:
-			self.progressState = .downloading(loadedSize: Int64(status.activePhase.progressValue), totalSize: Int64(status.activePhase.totalProgressValue))
-		case 1:
-			self.progressState = .extracting(progress: Double(status.activePhase.progressValue) / Double(status.activePhase.totalProgressValue))
-		default:
-			self.progressState = .initializing
+		
+		// Nothing left to do, we wait for the install failure
+		guard self.installerPackageURL == nil else {
+			return
+		}
+		
+		if Self.requiresManualInstallation && status.percentComplete >= 0.8 {
+			// Keep the installer alive by linking to it. Manual installation will follow once the automatic one failed.
+			self.progressState = .extracting(progress: 0.2)
+			self.installerPackageURL = Self.snapshotAppStorePackage(at: download.primaryAsset.downloadPath)
+			self.progressState = .extracting(progress: 0.7)
+		} else {
+			switch status.activePhase.phaseType {
+			case 0:
+				self.progressState = .downloading(loadedSize: Int64(status.activePhase.progressValue), totalSize: Int64(status.activePhase.totalProgressValue))
+			case 1:
+				self.progressState = .extracting(progress: Double(status.activePhase.progressValue) / Double(status.activePhase.totalProgressValue))
+			default:
+				self.progressState = .initializing
+			}
 		}
 	}
 
@@ -103,11 +151,32 @@ extension AppStoreUpdateOperation: CKDownloadQueueObserver {
 			return
 		}
 
-		// Cancel operation.
-		if status.isFailed {
-			self.finish(with: status.error)
-		} else {
+		// Installed successfully
+		guard status.isFailed else {
 			self.finish()
+			return
+		}
+		
+		// No manual installation possible, abort with error
+		guard let installerPackageURL, let receiptData = download.metadata.receiptData, let bundle = Bundle(identifier: bundleIdentifier), let receiptURL = bundle.appStoreReceiptURL else {
+			self.finish(with: status.error)
+			return
+		}
+		
+		Task { [weak self] in
+			guard let self, !self.isCancelled else {
+				self?.finish()
+				return
+			}
+			
+			self.progressState = .installing
+			
+			do {
+				try await InstallHelper.shared.installPackage(at: installerPackageURL, targetURL: bundle.bundlePath, receiptData: receiptData, receiptURL: receiptURL)
+				self.finish()
+			} catch {
+				self.finish(with: error)
+			}
 		}
 	}
 
@@ -135,25 +204,19 @@ private extension ISStoreAccount {
 }
 
 private extension SSPurchase {
-	convenience init(itemIdentifier: UInt64, account: ISStoreAccount?, purchase: Bool = false) {
+	convenience init(itemIdentifier: UInt64, account: ISStoreAccount?) {
 		self.init()
 
-		var parameters: [String: Any] = [
+		let parameters: [String: Any] = [
 			"productType": "C",
 			"price": 0,
 			"salableAdamId": itemIdentifier,
 			"pg": "default",
 			"appExtVrsId": 0,
-		]
 
-		if purchase {
-			parameters["macappinstalledconfirmed"] = 1
-			parameters["pricingParameters"] = "STDQ"
-
-		} else {
 			// is redownload, use existing functionality
-			parameters["pricingParameters"] = "STDRDL"
-		}
+			"pricingParameters": "STDRDL"
+		]
 
 		buyParameters =
 			parameters.map { key, value in
@@ -166,16 +229,18 @@ private extension SSPurchase {
 			appleID = account.identifier
 		}
 
-		// Not sure if this is needed, but lets use it here.
-		if purchase {
-			isRedownload = false
-		}
-
 		let downloadMetadata = SSDownloadMetadata()
 		downloadMetadata.kind = "software"
 		downloadMetadata.itemIdentifier = itemIdentifier
 
 		self.downloadMetadata = downloadMetadata
 		self.itemIdentifier = itemIdentifier
+	}
+}
+
+extension SSDownloadMetadata {
+	/// Returns the app store receipt from the metadata.
+	var receiptData: Data? {
+		dictionary?["app-receipt"] as? Data
 	}
 }

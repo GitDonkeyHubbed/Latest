@@ -10,6 +10,13 @@ import AppKit
 
 /// Controller for settings of the General tab.
 class GeneralSettingsViewController: SettingsTabItemViewController {
+	override func viewDidLoad() {
+		super.viewDidLoad()
+		updateInstallHelperBannerVisibility()
+	}
+	
+	// MARK: - Check Includes
+	
 	/// Whether apps with limited support should be included in the app list.
 	@objc var includeAppsWithLimitedSupport: Bool {
 		get {
@@ -29,4 +36,26 @@ class GeneralSettingsViewController: SettingsTabItemViewController {
 			AppListSettings.shared.includeUnsupportedApps = newValue
 		}
 	}
+	
+	
+	// MARK: - Install Helper
+	
+	@IBOutlet weak var installHelperOptInView: NSView!
+
+	private func updateInstallHelperBannerVisibility() {
+		do {
+			try InstallHelper.verifyAvailability()
+			installHelperOptInView.isHidden = true
+		} catch {
+			installHelperOptInView.isHidden = false
+		}
+	}
+	
+	@IBAction func registerInstallHelper(_ sender: Any) {
+		AppStoreUpdateSettings.alwaysPerformManualUpdates.active = false
+		try? InstallHelper.installHelper()
+		
+		updateInstallHelperBannerVisibility()
+	}
+
 }

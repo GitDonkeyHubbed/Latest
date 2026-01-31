@@ -150,3 +150,30 @@
 
 /* Tool tip of a toolbar button that performs updates for all apps with update available */
 "UpdateAllToolbarItemToolTip" = "Update all Apps";
+
+/* Shown when the update helper is not installed. */
+"InstallHelperNotFoundErrorDescription" = "To install App Store updates within Latest, a helper must be installed. If you don't want to install the helper, you can update apps via the App Store manually.";
+
+/* Shown when the update helper is installed but disabled, requiring approval. */
+"InstallHelperRequiresApprovalErrorDescription" = "Enable the update helper in Settings to install updates within Latest.";
+
+/* Title of the alert prompting to install or enable the update helper */
+"UpdateInstallHelperAlert.Title" = "Update Helper Required";
+
+/* Checkbox title to always open the App Store instead of using the helper */
+"UpdateInstallHelperAlert.SuppressionTitle" = "Always open App Store";
+
+/* Primary button to install the update helper */
+"UpdateInstallHelperAlert.Primary.InstallHelper" = "Install Helper";
+
+/* Primary button to open Settings to enable the update helper */
+"UpdateInstallHelperAlert.Primary.OpenSettings" = "Open Settings";
+
+/* Button to update the app in the App Store */
+"UpdateInstallHelperAlert.Secondary.AppStore" = "Update In App Store";
+
+/* Cancel button in the helper alert */
+"UpdateInstallHelperAlert.Cancel" = "Cancel";
+
+/* Short description of an error when communicating with the apps install helper. */
+"InstallHelperCommunicationFailedError" = "Latest failed to update this app because a problem with the helper application.";
