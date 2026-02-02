@@ -77,6 +77,9 @@ actor InstallHelper {
 		connection.remoteObjectInterface = NSXPCInterface(with: UpdateInstallerProtocol.self)
 		
 		var connectionInvalidated = false
+		connection.interruptionHandler = {
+			connectionInvalidated = true
+		}
 		connection.invalidationHandler = {
 			connectionInvalidated = true
 		}
