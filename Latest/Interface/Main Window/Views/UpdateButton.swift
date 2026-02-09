@@ -93,9 +93,7 @@ class UpdateButton: NSButton {
 		self.action = #selector(performAction(_:))
 		
 		self.isBordered = false
-		if #available(OSX 10.14, *) {
-			self.contentTintColor = .controlAccentColor
-		}
+		self.contentTintColor = .controlAccentColor
 	}
 	
 	deinit {
@@ -193,11 +191,7 @@ class UpdateButton: NSButton {
 		case .open:
 			title = NSLocalizedString("OpenAction", comment: "Action to open a given app.")
 		case .error:
-			if #available(OSX 11.0, *) {
-				image = NSImage(systemSymbolName: "exclamationmark.triangle.fill", accessibilityDescription: NSLocalizedString("ErrorButtonAccessibilityTitle", comment: "Description of button that opens an error dialogue."))
-			} else {
-				image = NSImage(named: "warning")!
-			}
+			image = NSImage(systemSymbolName: "exclamationmark.triangle.fill", accessibilityDescription: NSLocalizedString("ErrorButtonAccessibilityTitle", comment: "Description of button that opens an error dialogue."))
 		default:
 			()
 		}
