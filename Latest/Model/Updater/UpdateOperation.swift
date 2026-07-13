@@ -55,6 +55,7 @@ class UpdateOperation: StatefulOperation, @unchecked Sendable {
 		/// The current update state.
 	var progressState: UpdateOperation.ProgressState = .pending {
 		didSet {
+			self.resetWatchdog()
 			self.progressHandler?(self.appIdentifier)
 		}
 	}
@@ -68,24 +69,72 @@ class UpdateOperation: StatefulOperation, @unchecked Sendable {
 	
 	
 	// MARK: - Operation sub-classing
-	
+
 	override func execute() {
+		self.startWatchdog()
 		self.progressState = .initializing
 	}
-	
+
 	override func cancel() {
 		super.cancel()
 		self.progressState = .cancelling
 	}
-		
+
 	override func finish() {
+		self.stopWatchdog()
+
 		if let error = self.error {
 			self.progressState = .error(error)
 		} else {
 			self.progressState = .none
 		}
-		
+
 		super.finish()
 	}
-	
+
+
+	// MARK: - Watchdog
+
+	/// The interval without any progress after which an update operation is considered stuck.
+	///
+	/// Update operations occupy one of the limited slots in the update queue. Without a timeout, a
+	/// single stalled operation (unreachable server, silent CommerceKit failure, an app that refuses
+	/// to quit) blocks its slot forever and the UI appears frozen. The watchdog fails the operation
+	/// with a clear error instead, freeing the queue and offering the user a retry.
+	private static let inactivityTimeout: TimeInterval = 5 * 60
+
+	/// The timer failing this operation when no progress occurred for `inactivityTimeout`.
+	private var watchdog: DispatchSourceTimer?
+
+	/// Starts observing the operation for inactivity.
+	private func startWatchdog() {
+		let timer = DispatchSource.makeTimerSource(queue: .global())
+		timer.setEventHandler { [weak self] in
+			guard let self = self, !self.isFinished, !self.isCancelled else { return }
+			self.handleTimeout()
+		}
+		timer.schedule(deadline: .now() + Self.inactivityTimeout)
+		timer.activate()
+
+		self.watchdog = timer
+	}
+
+	/// Delays the timeout after progress occurred.
+	private func resetWatchdog() {
+		self.watchdog?.schedule(deadline: .now() + Self.inactivityTimeout)
+	}
+
+	/// Stops observing the operation.
+	private func stopWatchdog() {
+		self.watchdog?.cancel()
+		self.watchdog = nil
+	}
+
+	/// Called when no progress occurred for `inactivityTimeout`.
+	///
+	/// Subclasses may override this method to tear down in-flight work. They must call `super`.
+	func handleTimeout() {
+		self.finish(with: LatestError.updateTimedOut)
+	}
+
 }

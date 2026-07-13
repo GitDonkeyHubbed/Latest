@@ -77,6 +77,8 @@ class AppStoreUpdateOperation: UpdateOperation, @unchecked Sendable {
 	}
 	
 	override func cancel() {
+		// Mark the operation as cancelled so in-flight download callbacks abort properly.
+		super.cancel()
 		self.finish()
 	}
 

@@ -20,7 +20,10 @@ enum LatestError: LocalizedError {
 	
 	/// The communication with an install helper failed.
 	case installHelperCommunicationFailed
-	
+
+	/// The update made no progress for an extended period of time and was aborted.
+	case updateTimedOut
+
 	case custom(title: String, description: String?)
 	
 	
@@ -40,7 +43,10 @@ enum LatestError: LocalizedError {
 			
 		case .installHelperCommunicationFailed:
 			return NSLocalizedString("InstallHelperCommunicationFailedError", comment: "Short description of an error when communicating with the apps install helper.")
-			
+
+		case .updateTimedOut:
+			return NSLocalizedString("UpdateTimedOutError", value: "The update timed out.", comment: "Short description of an error stating that an update stopped making progress and was aborted.")
+
 			case .custom(let title, _):
 				return title
 		}
@@ -63,7 +69,10 @@ enum LatestError: LocalizedError {
 			
 		case .installHelperCommunicationFailed:
 			return nil
-			
+
+		case .updateTimedOut:
+			return NSLocalizedString("UpdateTimedOutErrorFailureReason", value: "The update stopped making progress for several minutes.", comment: "Error message stating that an update stopped making progress and was aborted.")
+
 		case .custom(_ , let description):
 			return description
 		}
@@ -82,7 +91,10 @@ enum LatestError: LocalizedError {
 			
 		case .installHelperCommunicationFailed:
 			return NSLocalizedString("AppStoreNotSignedInErrorRecoverySuggestion", comment: "Error description when the attempt to update an app from the App Store failed because the user is not signed in with their App Store account.")
-			
+
+		case .updateTimedOut:
+			return NSLocalizedString("UpdateTimedOutErrorRecoverySuggestion", value: "Check your internet connection and quit the app being updated, then try again.", comment: "Recovery suggestion for an update that stopped making progress and was aborted.")
+
 		case .custom(_ , _):
 			return nil
 		}

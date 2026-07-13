@@ -60,10 +60,11 @@ class SparkleUpdateOperation: UpdateOperation, @unchecked Sendable {
 				try updater.start()
 			} catch let error {
 				self.finish(with: error)
+				return
 			}
-			
+
 			updater.checkForUpdates()
-			
+
 			self.updater = updater
 		}
 	}
@@ -78,8 +79,14 @@ class SparkleUpdateOperation: UpdateOperation, @unchecked Sendable {
 	override func finish() {
 		// Cleanup updater
 		self.updater = nil
-		
+
 		super.finish()
+	}
+
+	override func handleTimeout() {
+		// Tear down any in-flight download before failing the operation.
+		self.cancellationCallback?()
+		super.handleTimeout()
 	}
 	
 	
@@ -192,6 +199,19 @@ extension SparkleUpdateOperation: SPUUserDriver {
 	
 	func showInstallingUpdate(withApplicationTerminated applicationTerminated: Bool, retryTerminatingApplication: @escaping () -> Void) {
 		self.progressState = .installing
+
+		// Sparkle waits indefinitely for the updated app to quit, which previously appeared as a
+		// frozen update. Politely ask the app to quit and let Sparkle retry shortly after. The
+		// polite terminate gives the app a chance to show unsaved-changes dialogs; if it still
+		// won't quit, the operation's watchdog eventually fails the update with a clear error.
+		if !applicationTerminated, !self.isCancelled {
+			self.runningApplication?.terminate()
+
+			DispatchQueue.global().asyncAfter(deadline: .now() + 5) { [weak self] in
+				guard let self = self, !self.isFinished, !self.isCancelled else { return }
+				retryTerminatingApplication()
+			}
+		}
 	}
 		
 
@@ -201,7 +221,12 @@ extension SparkleUpdateOperation: SPUUserDriver {
 	func dismissUserInitiatedUpdateCheck() {}
 	func showUpdateReleaseNotes(with downloadData: SPUDownloadData) {}
 	func showUpdateReleaseNotesFailedToDownloadWithError(_ error: Error) {}
-	func showSendingTerminationSignal() {}
+
+	func showSendingTerminationSignal() {
+		// Show activity while Sparkle waits for the updated app to quit.
+		self.progressState = .installing
+	}
+
 	func dismissUpdateInstallation() {}
 	
 }
