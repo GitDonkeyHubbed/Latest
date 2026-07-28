@@ -52,6 +52,14 @@ class UpdateQueue: OperationQueue, @unchecked Sendable {
 		
 		// Abort if the app is already in the queue
 		if !self.contains(operation.appIdentifier) {
+			// Homebrew holds a global lock, so brew upgrades run one at a time. Chain
+			// them via dependencies: a waiting operation stays unstarted, occupies no
+			// concurrency slot, and arms no watchdog until it is its turn.
+			if let brewOperation = operation as? HomebrewUpdateOperation,
+			   let previousBrewOperation = self.operations.compactMap({ $0 as? HomebrewUpdateOperation }).last {
+				brewOperation.addDependency(previousBrewOperation)
+			}
+
 			super.addOperation(op)
 			
 			operation.progressHandler = { identifier in

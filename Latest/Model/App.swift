@@ -113,6 +113,14 @@ extension App {
 	var supported: Bool {
 		return self.source != .none
 	}
+
+	/// The level of support Latest provides for updating this app.
+	///
+	/// Unlike `source.supportState`, this considers the actual update: a Homebrew app whose
+	/// upgrade can be performed within Latest is fully supported.
+	var supportState: Source.SupportState {
+		return self.update?.supportState ?? self.source.supportState
+	}
 	
 	/// The date of the app when it was last updated.
 	var updateDate: Date {

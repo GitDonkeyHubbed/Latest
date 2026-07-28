@@ -201,8 +201,8 @@ class ReleaseNotesViewController: NSViewController {
 		// Support state
 		self.supportStateButton.isHidden = !(AppListSettings.shared.includeUnsupportedApps || AppListSettings.shared.includeAppsWithLimitedSupport)
 		if !self.supportStateButton.isHidden {
-			self.supportStateButton.title = app.source.supportState.compactLabel
-			self.supportStateButton.image = app.source.supportState.statusImage
+			self.supportStateButton.title = app.supportState.compactLabel
+			self.supportStateButton.image = app.supportState.statusImage
 		}
 		
 		// Icon

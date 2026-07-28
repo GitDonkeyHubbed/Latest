@@ -37,10 +37,10 @@ class SupportStatusInfoViewController: NSViewController {
 	private func updateUI() {
 		guard let app else { return }
 		
-		statusImageView.image = app.source.supportState.statusImage
-		titleLabel.stringValue = app.source.supportState.label
-		
-		switch app.source.supportState {
+		statusImageView.image = app.supportState.statusImage
+		titleLabel.stringValue = app.supportState.label
+
+		switch app.supportState {
 		case .none:
 			descriptionLabel.stringValue = NSLocalizedString("NoSupportDescription", comment: "Description for apps without support.")
 			reportIssueButton.isHidden = true

@@ -96,8 +96,8 @@ class UpdateCell: NSTableCellView {
 		// Support state
 		supportStateImageView.isHidden = !showSupportState
 		if showSupportState {
-			supportStateImageView.image = app.source.supportState.statusImage
-			supportStateImageView.toolTip = app.source.supportState.label
+			supportStateImageView.image = app.supportState.statusImage
+			supportStateImageView.toolTip = app.supportState.label
 		}
 	}
 	

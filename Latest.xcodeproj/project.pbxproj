@@ -24,6 +24,8 @@
 		5039DE8722CA39C60088B39B /* UpdateOperation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5039DE8622CA39C60088B39B /* UpdateOperation.swift */; };
 		5039DE8B22CA39ED0088B39B /* StatefulOperation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5039DE8A22CA39ED0088B39B /* StatefulOperation.swift */; };
 		5039DE8D22CAA2790088B39B /* AppStoreUpdateOperation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5039DE8C22CAA2790088B39B /* AppStoreUpdateOperation.swift */; };
+		50AB5C032F26B10100471DAA /* HomebrewUpdateOperation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50AB5C012F26B10100471DAA /* HomebrewUpdateOperation.swift */; };
+		50AB5C042F26B10100471DAA /* HomebrewInstallation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50AB5C022F26B10100471DAA /* HomebrewInstallation.swift */; };
 		503A5C0D2F14528500471DAA /* UpdateInstallHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 503A5C0B2F14527800471DAA /* UpdateInstallHelper.swift */; };
 		5040D45C28DBB753009BF379 /* HomebrewCheckerOperation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5040D45A28DBB753009BF379 /* HomebrewCheckerOperation.swift */; };
 		5048574022C81DD000C52C48 /* CommerceKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5048573F22C81DCF00C52C48 /* CommerceKit.framework */; };
@@ -206,6 +208,8 @@
 		5039DE8622CA39C60088B39B /* UpdateOperation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateOperation.swift; sourceTree = "<group>"; };
 		5039DE8A22CA39ED0088B39B /* StatefulOperation.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = StatefulOperation.swift; sourceTree = "<group>"; };
 		5039DE8C22CAA2790088B39B /* AppStoreUpdateOperation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStoreUpdateOperation.swift; sourceTree = "<group>"; };
+		50AB5C012F26B10100471DAA /* HomebrewUpdateOperation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomebrewUpdateOperation.swift; sourceTree = "<group>"; };
+		50AB5C022F26B10100471DAA /* HomebrewInstallation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomebrewInstallation.swift; sourceTree = "<group>"; };
 		503A5C0B2F14527800471DAA /* UpdateInstallHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateInstallHelper.swift; sourceTree = "<group>"; };
 		5040D45A28DBB753009BF379 /* HomebrewCheckerOperation.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = HomebrewCheckerOperation.swift; sourceTree = "<group>"; };
 		5048573F22C81DCF00C52C48 /* CommerceKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CommerceKit.framework; path = ../../../../../../System/Library/PrivateFrameworks/CommerceKit.framework; sourceTree = "<group>"; };
@@ -480,9 +484,19 @@
 				5039DE8422CA396F0088B39B /* UpdateQueue.swift */,
 				5050723B2F1048FA00AD60A8 /* App Store */,
 				503A5C072F12EB4000471DAA /* Sparkle */,
+				50AB5C052F26B10100471DAA /* Homebrew */,
 				5039DE8622CA39C60088B39B /* UpdateOperation.swift */,
 			);
 			path = Updater;
+			sourceTree = "<group>";
+		};
+		50AB5C052F26B10100471DAA /* Homebrew */ = {
+			isa = PBXGroup;
+			children = (
+				50AB5C012F26B10100471DAA /* HomebrewUpdateOperation.swift */,
+				50AB5C022F26B10100471DAA /* HomebrewInstallation.swift */,
+			);
+			path = Homebrew;
 			sourceTree = "<group>";
 		};
 		503A5C072F12EB4000471DAA /* Sparkle */ = {
@@ -1083,6 +1097,8 @@
 				50E4EB072B17DACB00A70A7D /* VersionParser.swift in Sources */,
 				50290E751E53EB6A00133E3D /* AppDelegate.swift in Sources */,
 				5039DE8D22CAA2790088B39B /* AppStoreUpdateOperation.swift in Sources */,
+				50AB5C032F26B10100471DAA /* HomebrewUpdateOperation.swift in Sources */,
+				50AB5C042F26B10100471DAA /* HomebrewInstallation.swift in Sources */,
 				507375572789AB0300F371D8 /* AppListSnapshot.swift in Sources */,
 				501EF8ED2B9A665A00F0D759 /* BundleCollector.swift in Sources */,
 				50C9F0F5234637BD00FD1802 /* UpdateCheckerOperation.swift in Sources */,

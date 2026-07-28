@@ -51,12 +51,28 @@ class HomebrewCheckerOperation: StatefulOperation, UpdateCheckerOperation, @unch
 			return
 		}
 		
-		repository.updateInfo(for: bundle) { bundle, version, minimumOSVersion in
+		repository.updateInfo(for: bundle) { bundle, version, minimumOSVersion, caskToken in
 			defer { self.finish() }
 			guard let version else { return }
-			self.update = App.Update(app: bundle, remoteVersion: version, minimumOSVersion: minimumOSVersion, source: .homebrew, date: nil, releaseNotes: nil, updateAction: .external(label: bundle.name, block: { app in
-				app.open()
-			}))
+
+			// Perform the upgrade directly when Homebrew is installed and the app was actually
+			// installed through it. Otherwise, fall back to opening the app so its own update
+			// mechanism can take over. The scanned copy must live in /Applications — brew's
+			// default appdir — since a Caskroom entry says nothing about copies elsewhere
+			// (e.g. an app reinstalled manually after the cask install).
+			let updateAction: App.Update.Action
+			if let caskToken, let brewURL = HomebrewInstallation.brewURL, HomebrewInstallation.isCaskInstalled(caskToken, brewURL: brewURL),
+			   bundle.fileURL.deletingLastPathComponent().path(percentEncoded: false) == "/Applications" {
+				updateAction = .builtIn(block: { app in
+					UpdateQueue.shared.addOperation(HomebrewUpdateOperation(bundleIdentifier: app.bundleIdentifier, appIdentifier: app.identifier, caskToken: caskToken, brewURL: brewURL))
+				})
+			} else {
+				updateAction = .external(label: bundle.name, block: { app in
+					app.open()
+				})
+			}
+
+			self.update = App.Update(app: bundle, remoteVersion: version, minimumOSVersion: minimumOSVersion, source: .homebrew, date: nil, releaseNotes: nil, updateAction: updateAction)
 		}
 	}
 	

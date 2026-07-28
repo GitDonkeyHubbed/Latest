@@ -24,6 +24,15 @@ enum LatestError: LocalizedError {
 	/// The update made no progress for an extended period of time and was aborted.
 	case updateTimedOut
 
+	/// Homebrew is required to perform an update but could not be found on this machine.
+	case homebrewNotFound
+
+	/// A Homebrew cask upgrade failed. Carries the tail of brew's output, if any.
+	case homebrewUpgradeFailed(output: String?)
+
+	/// Homebrew reported success without actually upgrading anything.
+	case homebrewUpgradeNotPerformed
+
 	case custom(title: String, description: String?)
 	
 	
@@ -46,6 +55,15 @@ enum LatestError: LocalizedError {
 
 		case .updateTimedOut:
 			return NSLocalizedString("UpdateTimedOutError", value: "The update timed out.", comment: "Short description of an error stating that an update stopped making progress and was aborted.")
+
+		case .homebrewNotFound:
+			return NSLocalizedString("HomebrewNotFoundError", value: "The Homebrew installation could not be found.", comment: "Short description of an error stating that the Homebrew executable is missing.")
+
+		case .homebrewUpgradeFailed:
+			return NSLocalizedString("HomebrewUpgradeFailedError", value: "Homebrew could not update the app.", comment: "Short description of an error stating that a Homebrew cask upgrade failed.")
+
+		case .homebrewUpgradeNotPerformed:
+			return NSLocalizedString("HomebrewUpgradeNotPerformedError", value: "Homebrew did not update the app.", comment: "Short description of an error stating that Homebrew reported success without upgrading anything.")
 
 			case .custom(let title, _):
 				return title
@@ -73,6 +91,15 @@ enum LatestError: LocalizedError {
 		case .updateTimedOut:
 			return NSLocalizedString("UpdateTimedOutErrorFailureReason", value: "The update stopped making progress for several minutes.", comment: "Error message stating that an update stopped making progress and was aborted.")
 
+		case .homebrewNotFound:
+			return nil
+
+		case .homebrewUpgradeFailed(let output):
+			return output
+
+		case .homebrewUpgradeNotPerformed:
+			return NSLocalizedString("HomebrewUpgradeNotPerformedErrorFailureReason", value: "Homebrew considers the installed version up to date, but the app on disk reports an older version.", comment: "Error message stating that Homebrew reported success without upgrading anything.")
+
 		case .custom(_ , let description):
 			return description
 		}
@@ -94,6 +121,15 @@ enum LatestError: LocalizedError {
 
 		case .updateTimedOut:
 			return NSLocalizedString("UpdateTimedOutErrorRecoverySuggestion", value: "Check your internet connection and quit the app being updated, then try again.", comment: "Recovery suggestion for an update that stopped making progress and was aborted.")
+
+		case .homebrewNotFound:
+			return NSLocalizedString("HomebrewNotFoundErrorRecoverySuggestion", value: "Install Homebrew or update the app manually, then try again.", comment: "Recovery suggestion for an update that failed because Homebrew is not installed.")
+
+		case .homebrewUpgradeFailed:
+			return NSLocalizedString("HomebrewUpgradeFailedErrorRecoverySuggestion", value: "Try again. If the problem persists, the update may require an administrator password; run “brew upgrade --cask” in Terminal instead.", comment: "Recovery suggestion for a failed Homebrew cask upgrade.")
+
+		case .homebrewUpgradeNotPerformed:
+			return NSLocalizedString("HomebrewUpgradeNotPerformedErrorRecoverySuggestion", value: "Update the app using its own updater, or reinstall the cask with “brew reinstall --cask” in Terminal.", comment: "Recovery suggestion when Homebrew reported success without upgrading anything.")
 
 		case .custom(_ , _):
 			return nil

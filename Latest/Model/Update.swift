@@ -73,6 +73,18 @@ extension App {
 			if case .external(let label, _) = updateAction { label } else { nil }
 		}
 
+		/// The level of support Latest provides for performing this update.
+		///
+		/// Homebrew updates are only fully supported when Latest can run the upgrade itself;
+		/// otherwise the source's default (limited) support applies.
+		var supportState: App.Source.SupportState {
+			if source == .homebrew, case .builtIn = updateAction {
+				return .full
+			}
+
+			return source.supportState
+		}
+
 		
 		// MARK: - Actions
 				
