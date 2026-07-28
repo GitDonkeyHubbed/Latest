@@ -1,0 +1,20 @@
+version: 2
+updates:
+  # Swift Package Manager (Sparkle 2.9.4 is the only package dependency).
+  # NOTE: Dependabot's swift ecosystem follows Package.swift manifests. This
+  # project declares Sparkle inside Latest.xcodeproj (XCRemoteSwiftPackageReference,
+  # exact-version pin), which Dependabot cannot rewrite — expect Sparkle bumps to
+  # remain manual until a Package.swift exists. Kept here so coverage starts
+  # automatically if one is ever added.
+  - package-ecosystem: "swift"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+
+  # Keep the GitHub Actions used by CI (actions/checkout, etc.) up to date.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5

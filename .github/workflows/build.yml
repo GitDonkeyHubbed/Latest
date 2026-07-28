@@ -1,0 +1,86 @@
+name: Build & Test
+
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    name: Build and unit-test (macOS 15, Xcode 16)
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Select newest Xcode
+        run: |
+          # Pick the newest Xcode installed on the runner; fall back to the image default.
+          # Requires Xcode 16+ (typed throws); prefers 26.x when the image ships it.
+          XCODE_APP="$(ls -d /Applications/Xcode_*.app 2>/dev/null | sort -V | tail -n 1 || true)"
+          if [ -n "$XCODE_APP" ]; then
+            sudo xcode-select -s "$XCODE_APP/Contents/Developer"
+          fi
+          xcodebuild -version
+          sw_vers
+
+      - name: Ensure a shared "Latest" scheme exists
+        run: |
+          # The repo does not check in Latest.xcodeproj/xcshareddata/xcschemes/, and
+          # xcodebuild cannot auto-create schemes. Generate a shared scheme that builds
+          # the app and runs the "Latest Tests" unit-test bundle. This is a no-op once
+          # a shared scheme is committed to the repo.
+          if [ -f "Latest.xcodeproj/xcshareddata/xcschemes/Latest.xcscheme" ]; then
+            echo "Shared scheme already present; using it."
+          else
+            echo "No shared scheme checked in; generating one."
+            ruby -e "require 'xcodeproj'" 2>/dev/null \
+              || gem install xcodeproj --no-document \
+              || sudo gem install xcodeproj --no-document
+            ruby <<'RUBY'
+          require "xcodeproj"
+          project_path = "Latest.xcodeproj"
+          project = Xcodeproj::Project.open(project_path)
+          app   = project.targets.find { |t| t.name == "Latest" }
+          tests = project.targets.find { |t| t.name == "Latest Tests" }
+          raise "Expected targets not found in #{project_path}" unless app && tests
+          scheme = Xcodeproj::XCScheme.new
+          scheme.add_build_target(app)
+          scheme.set_launch_target(app)
+          scheme.add_test_target(tests)
+          scheme.save_as(project_path, "Latest", true)
+          puts "Wrote shared scheme 'Latest' (build: Latest, test: Latest Tests)."
+          RUBY
+          fi
+          xcodebuild -list -project Latest.xcodeproj
+
+      - name: Build
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -project Latest.xcodeproj \
+            -scheme "Latest" \
+            -configuration Debug \
+            -destination "platform=macOS" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY=""
+
+      - name: Run unit tests
+        run: |
+          set -o pipefail
+          xcodebuild test \
+            -project Latest.xcodeproj \
+            -scheme "Latest" \
+            -configuration Debug \
+            -destination "platform=macOS" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY=""
