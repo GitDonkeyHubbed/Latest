@@ -78,7 +78,8 @@ struct Version : Hashable, Comparable {
 		}
 		
 		guard let c1 = v1?.components(), let c2 = v2?.components() else {
-			return .undefined
+			// Two versions without any comparable content are equal to each other.
+			return (v1 == nil && v2 == nil) ? .equal : .undefined
 		}
 		
 		let count1 = c1.count
