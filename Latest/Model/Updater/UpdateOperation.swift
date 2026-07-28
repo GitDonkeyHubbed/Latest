@@ -80,7 +80,7 @@ class UpdateOperation: StatefulOperation, @unchecked Sendable {
 		self.progressState = .cancelling
 	}
 
-	override func finish() {
+	override func willFinish() {
 		self.stopWatchdog()
 
 		if let error = self.error {
@@ -89,7 +89,7 @@ class UpdateOperation: StatefulOperation, @unchecked Sendable {
 			self.progressState = .none
 		}
 
-		super.finish()
+		super.willFinish()
 	}
 
 
@@ -103,38 +103,70 @@ class UpdateOperation: StatefulOperation, @unchecked Sendable {
 	/// with a clear error instead, freeing the queue and offering the user a retry.
 	private static let inactivityTimeout: TimeInterval = 5 * 60
 
+	/// The serial queue confining all access to `watchdog`.
+	private let watchdogQueue = DispatchQueue(label: "UpdateOperation.watchdog")
+
 	/// The timer failing this operation when no progress occurred for `inactivityTimeout`.
+	///
+	/// Must only be accessed on `watchdogQueue`.
 	private var watchdog: DispatchSourceTimer?
 
 	/// Starts observing the operation for inactivity.
 	private func startWatchdog() {
-		let timer = DispatchSource.makeTimerSource(queue: .global())
-		timer.setEventHandler { [weak self] in
-			guard let self = self, !self.isFinished, !self.isCancelled else { return }
-			self.handleTimeout()
-		}
-		timer.schedule(deadline: .now() + Self.inactivityTimeout)
-		timer.activate()
+		self.watchdogQueue.async {
+			let timer = DispatchSource.makeTimerSource(queue: self.watchdogQueue)
+			timer.setEventHandler { [weak self] in
+				guard let self = self, !self.isFinished, !self.isCancelled else { return }
+				self.handleTimeout()
+			}
+			timer.schedule(deadline: .now() + Self.inactivityTimeout)
+			timer.activate()
 
-		self.watchdog = timer
+			self.watchdog = timer
+		}
 	}
 
 	/// Delays the timeout after progress occurred.
 	private func resetWatchdog() {
-		self.watchdog?.schedule(deadline: .now() + Self.inactivityTimeout)
+		self.watchdogQueue.async {
+			self.watchdog?.schedule(deadline: .now() + Self.inactivityTimeout)
+		}
+	}
+
+	/// Feeds the watchdog after activity that is not reflected in `progressState`.
+	func noteActivity() {
+		self.resetWatchdog()
+	}
+
+	/// Delays the timeout by the given interval, for long-running phases that cannot report progress.
+	func extendWatchdog(by interval: TimeInterval) {
+		self.watchdogQueue.async {
+			self.watchdog?.schedule(deadline: .now() + interval)
+		}
 	}
 
 	/// Stops observing the operation.
 	private func stopWatchdog() {
-		self.watchdog?.cancel()
-		self.watchdog = nil
+		self.watchdogQueue.async {
+			self.watchdog?.cancel()
+			self.watchdog = nil
+		}
 	}
 
 	/// Called when no progress occurred for `inactivityTimeout`.
 	///
-	/// Subclasses may override this method to tear down in-flight work. They must call `super`.
-	func handleTimeout() {
-		self.finish(with: LatestError.updateTimedOut)
+	/// The teardown only runs when the timeout actually finishes the operation;
+	/// if a regular finish wins the race, no teardown is performed.
+	final func handleTimeout() {
+		self.finish(with: LatestError.updateTimedOut, beforeFinish: {
+			self.timeoutTeardown()
+		})
 	}
+
+	/// Tears down in-flight work after the operation timed out.
+	///
+	/// Subclasses override this instead of `handleTimeout`; it runs exactly once
+	/// and never after a successful finish.
+	func timeoutTeardown() {}
 
 }

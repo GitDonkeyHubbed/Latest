@@ -76,17 +76,19 @@ class SparkleUpdateOperation: UpdateOperation, @unchecked Sendable {
 		self.finish()
 	}
 	
-	override func finish() {
+	override func willFinish() {
 		// Cleanup updater
 		self.updater = nil
 
-		super.finish()
+		super.willFinish()
 	}
 
-	override func handleTimeout() {
-		// Tear down any in-flight download before failing the operation.
+	override func timeoutTeardown() {
+		// Tear down any in-flight download before failing the operation. Runs
+		// only when the timeout wins the finish claim, so Sparkle's cancellation
+		// callback can never fire after a successful finish.
 		self.cancellationCallback?()
-		super.handleTimeout()
+		super.timeoutTeardown()
 	}
 	
 	
@@ -223,8 +225,10 @@ extension SparkleUpdateOperation: SPUUserDriver {
 	func showUpdateReleaseNotesFailedToDownloadWithError(_ error: Error) {}
 
 	func showSendingTerminationSignal() {
-		// Show activity while Sparkle waits for the updated app to quit.
-		self.progressState = .installing
+		// Never called by Sparkle 2.x: SPUUIBasedUpdateDriver only invokes this deprecated
+		// hook when the user driver does NOT implement
+		// showInstallingUpdate(withApplicationTerminated:retryTerminatingApplication:),
+		// which this class implements (and which already sets .installing).
 	}
 
 	func dismissUpdateInstallation() {}

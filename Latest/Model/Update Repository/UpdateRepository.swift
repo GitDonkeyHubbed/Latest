@@ -156,19 +156,28 @@ class UpdateRepository {
 				return
 			}
 			
-			// Fetch data from server
-			let session = URLSession(configuration: .default)
+			// Fetch data from server. Bound the fetch so a stalled or trickling connection can't wedge the update check.
+			let configuration = URLSessionConfiguration.default
+			configuration.timeoutIntervalForRequest = 30
+			configuration.timeoutIntervalForResource = 300
+			let session = URLSession(configuration: configuration)
 			let task = session.dataTask(with: urlType.url) { [weak self] data, response, error in
+				// Release the session once the task has completed so it can't leak.
+				defer { session.finishTasksAndInvalidate() }
+
 				guard let self else { return }
-				guard let data = data ?? urlType.fallbackData else {
+
+				// Treat non-2xx responses (e.g. CDN error pages) as failures.
+				let fetchSucceeded = (response as? HTTPURLResponse).map { (200..<300).contains($0.statusCode) } ?? false
+				guard let data = (fetchSucceeded ? data : nil) ?? urlType.fallbackData else {
 					self.fetchCompletedGroup.leave()
 					return
 				}
-				
+
 				handle(data)
-				
-				// Store in cache
-				if let cacheURL = urlType.cacheURL {
+
+				// Store in cache, but only data that was actually fetched successfully
+				if fetchSucceeded, let cacheURL = urlType.cacheURL {
 					try? data.write(to: cacheURL)
 					UserDefaults.standard.setValue(Date.timeIntervalSinceReferenceDate, forKey: urlType.userDefaultsKey)
 				}
@@ -191,8 +200,14 @@ class UpdateRepository {
 	}
 	
 	private func loadUnsupportedApps(from data: Data) {
-		let propertyList = try! PropertyListSerialization.propertyList(from: data, format: nil) as! [String]
-		unsupportedBundleIdentifiers = Set(propertyList)
+		if let identifiers = (try? PropertyListSerialization.propertyList(from: data, format: nil)) as? [String] {
+			unsupportedBundleIdentifiers = Set(identifiers)
+		} else if let fallbackData = RemoteURL.unsupportedApps.fallbackData,
+				  let identifiers = (try? PropertyListSerialization.propertyList(from: fallbackData, format: nil)) as? [String] {
+			unsupportedBundleIdentifiers = Set(identifiers)
+		} else {
+			unsupportedBundleIdentifiers = []
+		}
 	}
 
 	

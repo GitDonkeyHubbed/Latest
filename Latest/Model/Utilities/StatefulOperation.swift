@@ -107,18 +107,54 @@ class StatefulOperation: Operation, @unchecked Sendable {
         fatalError("\(type(of: self)) must override `execute()`.")
     }
     
-    func finish() {
+    final func finish() {
+        guard self.claimFinish() else { return }
+        self.willFinish()
         self.state = .finished
     }
-    
+
     /// The error raised during execution
     private(set) var error: Error?
-    
-    func finish(with error: Error) {
+
+    final func finish(with error: Error) {
+        guard self.claimFinish() else { return }
         self.error = error
-        self.finish()
+        self.willFinish()
+        self.state = .finished
     }
-    
+
+    /// Finishes with the given error, running `beforeFinish` only when this call
+    /// actually wins the finish claim. Teardown work that must not run after a
+    /// concurrent successful finish (e.g. timeout cleanup) belongs in the closure.
+    final func finish(with error: Error, beforeFinish: () -> Void) {
+        guard self.claimFinish() else { return }
+        beforeFinish()
+        self.error = error
+        self.willFinish()
+        self.state = .finished
+    }
+
+    /// Called exactly once, right before the operation transitions into the
+    /// finished state. Subclasses override this instead of the final finish
+    /// methods; the final state broadcast still happens while the operation
+    /// is considered part of the queue.
+    func willFinish() {}
+
+    /// Whether one of the finish methods already ran.
+    private var finishClaimed = false
+
+    /// A lock guarding `finishClaimed` so concurrent finish calls collapse into one.
+    private let finishLock = NSLock()
+
+    /// Returns true exactly once; any later (possibly concurrent) finish call becomes a no-op.
+    private func claimFinish() -> Bool {
+        return self.finishLock.withCriticalScope {
+            if self.finishClaimed { return false }
+            self.finishClaimed = true
+            return true
+        }
+    }
+
 }
 
 extension NSLock {

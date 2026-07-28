@@ -15,14 +15,18 @@ class AppStoreUpdateOperation: UpdateOperation, @unchecked Sendable {
 	/// The purchase associated with the to be updated app.
 	private var purchase: SSPurchase!
 
-	/// The observer that observes the Mac App Store updater.
+	/// The observer that observes the Mac App Store updater. Guarded by `observerLock`:
+	/// it is written on CommerceKit's callback thread and read on whichever thread finishes.
 	private var observerIdentifier: CKDownloadQueueObserver?
-	
+
+	/// Protects `observerIdentifier` against the registration-vs-finish race.
+	private let observerLock = NSLock()
+
 	/// The app-store identifier for the related app.
 	private let itemIdentifier: UInt64
-	
+
 	private let installURL: URL
-	
+
 	private var installerPackageURL: URL?
 
 	init(bundleIdentifier: String, installURL: URL, appIdentifier: App.Bundle.Identifier, appStoreIdentifier: UInt64) {
@@ -68,8 +72,30 @@ class AppStoreUpdateOperation: UpdateOperation, @unchecked Sendable {
 			}
 
 			if let downloads = response?.downloads, downloads.count > 0, let purchase = purchase {
+				guard !self.isCancelled, !self.isFinished else {
+					// The operation was cancelled or timed out while the purchase was
+					// in flight; cancel the downloads delivered with the response
+					// directly (the shared queue's mirror may not contain them yet).
+					downloads.forEach { $0.cancel(withStoreClient: ISStoreClient(storeClientType: 0)) }
+					self.cancelQueuedDownloads()
+					return
+				}
+
 				self.purchase = purchase
-				self.observerIdentifier = CKDownloadQueue.shared().add(self)
+
+				let identifier = CKDownloadQueue.shared().add(self)
+				self.observerLock.withCriticalScope { self.observerIdentifier = identifier }
+
+				// Re-check after publishing: a concurrent cancel or timeout may have
+				// finished the operation between the guard above and the registration,
+				// in which case willFinish already ran and read a nil observer.
+				// Clean up here so no zombie observer outlives the operation.
+				if self.isCancelled || self.isFinished {
+					CKDownloadQueue.shared().remove(identifier)
+					self.observerLock.withCriticalScope { self.observerIdentifier = nil }
+					downloads.forEach { $0.cancel(withStoreClient: ISStoreClient(storeClientType: 0)) }
+					self.cancelQueuedDownloads()
+				}
 			} else {
 				self.finish(with: LatestError.updateInfoUnavailable)
 			}
@@ -77,17 +103,43 @@ class AppStoreUpdateOperation: UpdateOperation, @unchecked Sendable {
 	}
 	
 	override func cancel() {
-		// Mark the operation as cancelled so in-flight download callbacks abort properly.
 		super.cancel()
+
+		// Finishing removes the download queue observer, after which the isCancelled
+		// branch in the status callback can no longer run. Cancel the in-flight
+		// download explicitly before tearing down.
+		self.cancelQueuedDownloads()
+
 		self.finish()
 	}
 
-	override func finish() {
-		if let observerIdentifier = self.observerIdentifier {
+	override func willFinish() {
+		let observerIdentifier = self.observerLock.withCriticalScope { () -> CKDownloadQueueObserver? in
+			let identifier = self.observerIdentifier
+			self.observerIdentifier = nil
+			return identifier
+		}
+		if let observerIdentifier {
 			CKDownloadQueue.shared().remove(observerIdentifier)
 		}
 
-		super.finish()
+		super.willFinish()
+	}
+
+	override func timeoutTeardown() {
+		// Tear down the in-flight download so CommerceKit does not keep
+		// downloading (and possibly installing) after the operation failed.
+		// Queried fresh from the shared queue; caching the download reference
+		// here would race CommerceKit's callback thread.
+		self.cancelQueuedDownloads()
+		super.timeoutTeardown()
+	}
+
+	/// Cancels any in-flight App Store download for this operation's item.
+	private func cancelQueuedDownloads() {
+		for case let download as SSDownload in CKDownloadQueue.shared().downloads where download.metadata.itemIdentifier == self.itemIdentifier {
+			download.cancel(withStoreClient: ISStoreClient(storeClientType: 0))
+		}
 	}
 
 	
@@ -115,6 +167,10 @@ class AppStoreUpdateOperation: UpdateOperation, @unchecked Sendable {
 extension AppStoreUpdateOperation: CKDownloadQueueObserver {
 
 	func downloadQueue(_ downloadQueue: CKDownloadQueue!, statusChangedFor download: SSDownload!) {
+		guard download.metadata.itemIdentifier == itemIdentifier, let status = download.status else {
+			return
+		}
+
 		// Cancel download if the operation has been cancelled
 		if self.isCancelled {
 			download.cancel(withStoreClient: ISStoreClient(storeClientType: 0))
@@ -122,15 +178,16 @@ extension AppStoreUpdateOperation: CKDownloadQueueObserver {
 			return
 		}
 
-		guard download.metadata.itemIdentifier == itemIdentifier, let status = download.status else {
+		self.noteActivity()
+
+		// Nothing left to do besides forwarding progress; we wait for the install failure.
+		// Keep assigning progressState so the inactivity watchdog (reset in its didSet)
+		// is fed while the download finishes and the OS runs its automatic install attempt.
+		if self.installerPackageURL != nil {
+			self.progressState = .extracting(progress: min(0.7 + 0.3 * Double(status.percentComplete), 0.99))
 			return
 		}
-		
-		// Nothing left to do, we wait for the install failure
-		guard self.installerPackageURL == nil else {
-			return
-		}
-		
+
 		if Self.requiresManualInstallation && status.percentComplete >= 0.8 {
 			// Keep the installer alive by linking to it. Manual installation will follow once the automatic one failed.
 			self.progressState = .extracting(progress: 0.2)
@@ -160,11 +217,22 @@ extension AppStoreUpdateOperation: CKDownloadQueueObserver {
 		}
 		
 		// No manual installation possible, abort with error
-		guard let installerPackageURL, let receiptData = download.metadata.receiptData, let bundle = Bundle(identifier: bundleIdentifier), let receiptURL = bundle.appStoreReceiptURL else {
+		guard let installerPackageURL, let receiptData = download.metadata.receiptData else {
 			self.finish(with: status.error)
 			return
 		}
-		
+
+		// `installer -target /` places the package at its predefined location inside
+		// /Applications. An app living elsewhere would be duplicated rather than
+		// updated, so fall back to the plain error for those.
+		guard self.installURL.deletingLastPathComponent().path(percentEncoded: false) == "/Applications" else {
+			self.finish(with: status.error)
+			return
+		}
+
+		// The location appStoreReceiptURL resolves to for an app bundle.
+		let receiptURL = self.installURL.appending(path: "Contents/_MASReceipt/receipt")
+
 		Task { [weak self] in
 			guard let self, !self.isCancelled else {
 				self?.finish()
@@ -174,7 +242,11 @@ extension AppStoreUpdateOperation: CKDownloadQueueObserver {
 			self.progressState = .installing
 			
 			do {
-				try await InstallHelper.shared.installPackage(at: installerPackageURL, targetURL: bundle.bundlePath, receiptData: receiptData, receiptURL: receiptURL)
+				// The privileged helper reports no progress; extend the watchdog so a
+				// long-running install is not mistaken for a stall.
+				self.extendWatchdog(by: 30 * 60)
+				// The installer expects a volume mount point as its target, not the app bundle.
+				try await InstallHelper.shared.installPackage(at: installerPackageURL, targetURL: "/", receiptData: receiptData, receiptURL: receiptURL)
 				self.finish()
 			} catch {
 				self.finish(with: error)
@@ -184,25 +256,6 @@ extension AppStoreUpdateOperation: CKDownloadQueueObserver {
 
 	func downloadQueue(_ downloadQueue: CKDownloadQueue!, changedWithAddition download: SSDownload!) {}
 
-}
-
-private extension ISStoreAccount {
-	static var primaryAccount: ISStoreAccount? {
-		var account: ISStoreAccount?
-		
-		let group = DispatchGroup()
-		group.enter()
-		
-		let accountService: ISAccountService = ISServiceProxy.genericShared().accountService
-		accountService.primaryAccount { (storeAccount: ISStoreAccount) in
-			account = storeAccount
-			group.leave()
-		}
-		
-		_ = group.wait(timeout: .now() + 30)
-		
-		return account
-	}
 }
 
 private extension SSPurchase {

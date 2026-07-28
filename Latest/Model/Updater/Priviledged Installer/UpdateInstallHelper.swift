@@ -7,6 +7,7 @@
 //
 
 import AppKit
+import os
 import ServiceManagement
 
 /// Manages the privileged helper daemon used to install App Store updates via XPC.
@@ -76,31 +77,37 @@ actor InstallHelper {
 		let connection = NSXPCConnection(machServiceName: Self.installHelperName)
 		connection.remoteObjectInterface = NSXPCInterface(with: UpdateInstallerProtocol.self)
 		
-		var connectionInvalidated = false
-		connection.interruptionHandler = {
-			connectionInvalidated = true
-		}
-		connection.invalidationHandler = {
-			connectionInvalidated = true
-		}
-		
 		connection.activate()
 		defer { connection.invalidate() }
 		
-		guard !connectionInvalidated, let proxy = connection.remoteObjectProxy as? UpdateInstallerProtocol else {
-			throw LatestError.installHelperCommunicationFailed
-		}
-		
 		try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-			connection.interruptionHandler = {
-				continuation.resume(throwing: LatestError.installHelperCommunicationFailed)
+			// Once-guard: exactly one resume no matter which callback fires first,
+			// and a no-op for any later interruption/invalidation callbacks.
+			let resumed = OSAllocatedUnfairLock(initialState: false)
+			func resumeOnce(with result: Result<Void, Error>) {
+				let shouldResume = resumed.withLock { flag -> Bool in
+					guard !flag else { return false }
+					flag = true
+					return true
+				}
+				if shouldResume { continuation.resume(with: result) }
+			}
+			
+			// The error-handler proxy is invoked for both interruption and invalidation,
+			// including invalidation that occurred before this message was sent, with the
+			// guarantee that exactly one of {reply block, error handler} runs per message.
+			guard let proxy = connection.remoteObjectProxyWithErrorHandler({ _ in
+				resumeOnce(with: .failure(LatestError.installHelperCommunicationFailed))
+			}) as? UpdateInstallerProtocol else {
+				resumeOnce(with: .failure(LatestError.installHelperCommunicationFailed))
+				return
 			}
 			
 			proxy.performInstallation(ofPackageAt: url, targetURL: targetURL, receiptData: receiptData, receiptURL: receiptURL) { error in
 				if let error {
-					continuation.resume(throwing: error)
+					resumeOnce(with: .failure(error))
 				} else {
-					continuation.resume()
+					resumeOnce(with: .success(()))
 				}
 			}
 		}
