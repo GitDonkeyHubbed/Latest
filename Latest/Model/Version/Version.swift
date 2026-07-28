@@ -207,7 +207,15 @@ fileprivate extension String {
 			}
 			
 			else {
-				fatalError("Unable to parse version string: \(self)")
+				// Characters that fit no category (e.g. digit-class characters
+				// the scanner cannot consume as a number) must not crash the
+				// app over one odd version string. Consume a single character
+				// as plain text so scanning always advances.
+				let index = scanner.currentIndex
+				guard index < self.endIndex else { break }
+
+				currentAtoms.append(.string(value: String(self[index])))
+				scanner.currentIndex = self.index(after: index)
 			}
 		}
 		
