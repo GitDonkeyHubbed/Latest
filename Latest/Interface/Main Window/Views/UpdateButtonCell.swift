@@ -78,7 +78,7 @@ class UpdateButtonCell: NSButtonCell {
 		super.highlight(flag, withFrame: cellFrame, in: controlView)
 		
 		// On mouseDown, make the background slightly darker
-		self.view.animator().backgroundColor = (flag ? #colorLiteral(red: 0.7995074391, green: 0.8113409281, blue: 0.8403512836, alpha: 1) : #colorLiteral(red: 0.9488552213, green: 0.9487094283, blue: 0.9693081975, alpha: 1))
+		self.view.animator().backgroundColor = (flag ? UpdateButton.pillHighlightColor : UpdateButton.pillBackgroundColor)
 	}
 	
 	

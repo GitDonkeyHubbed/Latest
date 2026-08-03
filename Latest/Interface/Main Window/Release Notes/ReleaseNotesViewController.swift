@@ -122,7 +122,26 @@ class ReleaseNotesViewController: NSViewController {
     private var content: ReleaseNotesContent?
 
     // MARK: - View Lifecycle
-    
+
+	override func viewDidLoad() {
+		super.viewDidLoad()
+
+		// Back the whole pane with the window's backdrop material so the window
+		// reads as one continuous translucent surface instead of an opaque panel.
+		let backgroundView = NSVisualEffectView()
+		backgroundView.material = .underWindowBackground
+		backgroundView.blendingMode = .behindWindow
+		backgroundView.state = .followsWindowActiveState
+		backgroundView.translatesAutoresizingMaskIntoConstraints = false
+		self.view.addSubview(backgroundView, positioned: .below, relativeTo: nil)
+		NSLayoutConstraint.activate([
+			backgroundView.leadingAnchor.constraint(equalTo: self.view.leadingAnchor),
+			backgroundView.trailingAnchor.constraint(equalTo: self.view.trailingAnchor),
+			backgroundView.topAnchor.constraint(equalTo: self.view.topAnchor),
+			backgroundView.bottomAnchor.constraint(equalTo: self.view.bottomAnchor),
+		])
+	}
+
     override func viewWillAppear() {
         super.viewWillAppear()
         

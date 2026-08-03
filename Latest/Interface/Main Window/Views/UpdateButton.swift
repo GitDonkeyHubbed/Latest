@@ -73,8 +73,25 @@ class UpdateButton: NSButton {
 		return self.cell as! UpdateButtonCell
 	}
 	
+	/// The adaptive resting fill of the update pill. Resolves per appearance,
+	/// so it follows dark mode and translucent backdrops.
+	static var pillBackgroundColor: NSColor {
+		if #available(macOS 14.0, *) {
+			return .quaternarySystemFill
+		}
+		return .quaternaryLabelColor
+	}
+
+	/// The adaptive pressed fill of the update pill.
+	static var pillHighlightColor: NSColor {
+		if #available(macOS 14.0, *) {
+			return .tertiarySystemFill
+		}
+		return .tertiaryLabelColor
+	}
+
 	/// The background color for this button. Animatable.
-	@objc dynamic var backgroundColor: NSColor = #colorLiteral(red: 0.9488552213, green: 0.9487094283, blue: 0.9693081975, alpha: 1) {
+	@objc dynamic var backgroundColor: NSColor = UpdateButton.pillBackgroundColor {
 		didSet {
 			self.needsDisplay = true
 		}

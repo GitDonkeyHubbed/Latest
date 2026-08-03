@@ -65,7 +65,10 @@ class UpdateTableViewController: NSViewController, NSMenuItemValidation, NSTable
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        
+
+		// Rounded, inset row selection matching the modern sidebar appearance.
+		self.tableView.style = .inset
+
         if let cell = tableView.makeView(withIdentifier: NSUserInterfaceItemIdentifier(rawValue: "MLMUpdateCellIdentifier"), owner: self) {
             self.tableView.rowHeight = cell.frame.height
         }
