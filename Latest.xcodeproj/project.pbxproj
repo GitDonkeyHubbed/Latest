@@ -24,8 +24,6 @@
 		5039DE8722CA39C60088B39B /* UpdateOperation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5039DE8622CA39C60088B39B /* UpdateOperation.swift */; };
 		5039DE8B22CA39ED0088B39B /* StatefulOperation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5039DE8A22CA39ED0088B39B /* StatefulOperation.swift */; };
 		5039DE8D22CAA2790088B39B /* AppStoreUpdateOperation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5039DE8C22CAA2790088B39B /* AppStoreUpdateOperation.swift */; };
-		50AB5C032F26B10100471DAA /* HomebrewUpdateOperation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50AB5C012F26B10100471DAA /* HomebrewUpdateOperation.swift */; };
-		50AB5C042F26B10100471DAA /* HomebrewInstallation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50AB5C022F26B10100471DAA /* HomebrewInstallation.swift */; };
 		503A5C0D2F14528500471DAA /* UpdateInstallHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 503A5C0B2F14527800471DAA /* UpdateInstallHelper.swift */; };
 		5040D45C28DBB753009BF379 /* HomebrewCheckerOperation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5040D45A28DBB753009BF379 /* HomebrewCheckerOperation.swift */; };
 		5048574022C81DD000C52C48 /* CommerceKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5048573F22C81DCF00C52C48 /* CommerceKit.framework */; };
@@ -67,6 +65,8 @@
 		509C4ABC2AD1FFCC00E9C2E1 /* FailableDecodable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 509C4ABB2AD1FFCC00E9C2E1 /* FailableDecodable.swift */; };
 		50A86BBD27EA6BF4007A5F80 /* Credits.rtf in Resources */ = {isa = PBXBuildFile; fileRef = 50A86BBC27EA6BF4007A5F80 /* Credits.rtf */; };
 		50A8D2B327D2B063004DBA05 /* ReleaseNotesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50A8D2B227D2B063004DBA05 /* ReleaseNotesProvider.swift */; };
+		50AB5C032F26B10100471DAA /* HomebrewUpdateOperation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50AB5C012F26B10100471DAA /* HomebrewUpdateOperation.swift */; };
+		50AB5C042F26B10100471DAA /* HomebrewInstallation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50AB5C022F26B10100471DAA /* HomebrewInstallation.swift */; };
 		50ABFD252E9AF75B006CE4BC /* MainWindowController+Toolbar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50ABFD242E9AF74D006CE4BC /* MainWindowController+Toolbar.swift */; };
 		50ACE3F221D58DAD002FB72D /* UpdateTableView+Search.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50ACE3F121D58DAD002FB72D /* UpdateTableView+Search.swift */; };
 		50B016982C38986300590339 /* AppDirectoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50B016972C38986300590339 /* AppDirectoryStore.swift */; };
@@ -208,8 +208,6 @@
 		5039DE8622CA39C60088B39B /* UpdateOperation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateOperation.swift; sourceTree = "<group>"; };
 		5039DE8A22CA39ED0088B39B /* StatefulOperation.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = StatefulOperation.swift; sourceTree = "<group>"; };
 		5039DE8C22CAA2790088B39B /* AppStoreUpdateOperation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStoreUpdateOperation.swift; sourceTree = "<group>"; };
-		50AB5C012F26B10100471DAA /* HomebrewUpdateOperation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomebrewUpdateOperation.swift; sourceTree = "<group>"; };
-		50AB5C022F26B10100471DAA /* HomebrewInstallation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomebrewInstallation.swift; sourceTree = "<group>"; };
 		503A5C0B2F14527800471DAA /* UpdateInstallHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateInstallHelper.swift; sourceTree = "<group>"; };
 		5040D45A28DBB753009BF379 /* HomebrewCheckerOperation.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = HomebrewCheckerOperation.swift; sourceTree = "<group>"; };
 		5048573F22C81DCF00C52C48 /* CommerceKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CommerceKit.framework; path = ../../../../../../System/Library/PrivateFrameworks/CommerceKit.framework; sourceTree = "<group>"; };
@@ -291,6 +289,8 @@
 		50A11E3A2B2F7E4E00355CF5 /* sr */ = {isa = PBXFileReference; lastKnownFileType = text.plist.stringsdict; name = sr; path = sr.lproj/Localizable.stringsdict; sourceTree = "<group>"; };
 		50A86BBC27EA6BF4007A5F80 /* Credits.rtf */ = {isa = PBXFileReference; lastKnownFileType = text.rtf; path = Credits.rtf; sourceTree = "<group>"; };
 		50A8D2B227D2B063004DBA05 /* ReleaseNotesProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReleaseNotesProvider.swift; sourceTree = "<group>"; };
+		50AB5C012F26B10100471DAA /* HomebrewUpdateOperation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomebrewUpdateOperation.swift; sourceTree = "<group>"; };
+		50AB5C022F26B10100471DAA /* HomebrewInstallation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomebrewInstallation.swift; sourceTree = "<group>"; };
 		50ABFD242E9AF74D006CE4BC /* MainWindowController+Toolbar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MainWindowController+Toolbar.swift"; sourceTree = "<group>"; };
 		50ACE3F121D58DAD002FB72D /* UpdateTableView+Search.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UpdateTableView+Search.swift"; sourceTree = "<group>"; };
 		50B016972C38986300590339 /* AppDirectoryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDirectoryStore.swift; sourceTree = "<group>"; };
@@ -488,15 +488,6 @@
 				5039DE8622CA39C60088B39B /* UpdateOperation.swift */,
 			);
 			path = Updater;
-			sourceTree = "<group>";
-		};
-		50AB5C052F26B10100471DAA /* Homebrew */ = {
-			isa = PBXGroup;
-			children = (
-				50AB5C012F26B10100471DAA /* HomebrewUpdateOperation.swift */,
-				50AB5C022F26B10100471DAA /* HomebrewInstallation.swift */,
-			);
-			path = Homebrew;
 			sourceTree = "<group>";
 		};
 		503A5C072F12EB4000471DAA /* Sparkle */ = {
@@ -735,6 +726,15 @@
 			path = "View Model";
 			sourceTree = "<group>";
 		};
+		50AB5C052F26B10100471DAA /* Homebrew */ = {
+			isa = PBXGroup;
+			children = (
+				50AB5C012F26B10100471DAA /* HomebrewUpdateOperation.swift */,
+				50AB5C022F26B10100471DAA /* HomebrewInstallation.swift */,
+			);
+			path = Homebrew;
+			sourceTree = "<group>";
+		};
 		50C59D6A2D1F1AEE005BC36B /* General */ = {
 			isa = PBXGroup;
 			children = (
@@ -940,7 +940,6 @@
 				TargetAttributes = {
 					50290E701E53EB6A00133E3D = {
 						CreatedOnToolsVersion = 8.3;
-						DevelopmentTeam = VFABJ5RE5Q;
 						LastSwiftMigration = 1020;
 						ProvisioningStyle = Automatic;
 						SystemCapabilities = {
@@ -1484,6 +1483,7 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "";
+				DEVELOPMENT_TEAM = 3XRW39J2YH;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				FRAMEWORK_SEARCH_PATHS = (
@@ -1517,6 +1517,7 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "";
+				DEVELOPMENT_TEAM = 3XRW39J2YH;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				FRAMEWORK_SEARCH_PATHS = (
@@ -1708,7 +1709,7 @@
 			repositoryURL = "https://github.com/sparkle-project/Sparkle";
 			requirement = {
 				kind = exactVersion;
-				version = 2.9.4;
+				version = 2.9.5;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
