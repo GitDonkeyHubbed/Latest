@@ -13,20 +13,20 @@ permissions:
 
 jobs:
   build-and-test:
-    name: Build and unit-test (macOS 15, Xcode 16)
-    runs-on: macos-15
+    name: Build and unit-test (macOS 26, Xcode 26)
+    runs-on: macos-26
     timeout-minutes: 45
     steps:
       - name: Check out
         uses: actions/checkout@v4
 
-      - name: Select Xcode 16
+      - name: Select newest Xcode 26
         run: |
-          # Pin the newest Xcode 16.x: the macos-15 image also ships Xcode 26.x, but
-          # its ibtool crashes against the image's dyld caches (storyboard compilation
-          # dies with a MediaToolbox symbol mismatch). Xcode 16 is the stable pairing
-          # and satisfies the project's minimum (typed throws needs 16+).
-          XCODE_APP="$(ls -d /Applications/Xcode_16*.app 2>/dev/null | sort -V | tail -n 1 || true)"
+          # The asset catalog uses SF Symbols template format 7.0, which requires
+          # Xcode 26's actool — and Xcode 26 needs a macOS 26 host (on the macos-15
+          # image its ibtool crashes against the older dyld caches). Matching the
+          # runner image and toolchain mirrors the supported local setup.
+          XCODE_APP="$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -n 1 || true)"
           if [ -n "$XCODE_APP" ]; then
             sudo xcode-select -s "$XCODE_APP/Contents/Developer"
           fi
