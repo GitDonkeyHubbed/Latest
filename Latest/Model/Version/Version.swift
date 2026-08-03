@@ -50,8 +50,10 @@ struct Version : Hashable, Comparable {
 	// MARK: - Hashing
 	
 	func hash(into hasher: inout Hasher) {
-		hasher.combine(versionNumber)
-		hasher.combine(buildNumber)
+		// Comparison ignores semver build metadata, so hashing must as well —
+		// equal values are required to produce equal hashes.
+		hasher.combine(versionNumber?.strippingBuildMetadata)
+		hasher.combine(buildNumber?.strippingBuildMetadata)
 	}
 	
 	
@@ -210,12 +212,15 @@ fileprivate extension String {
 				// Characters that fit no category (e.g. digit-class characters
 				// the scanner cannot consume as a number) must not crash the
 				// app over one odd version string. Consume a single character
-				// as plain text so scanning always advances.
+				// as plain text so scanning always advances. Indices must come
+				// from scanner.string — string indices are not portable between
+				// String instances.
+				let string = scanner.string
 				let index = scanner.currentIndex
-				guard index < self.endIndex else { break }
+				guard index < string.endIndex else { break }
 
-				currentAtoms.append(.string(value: String(self[index])))
-				scanner.currentIndex = self.index(after: index)
+				currentAtoms.append(.string(value: String(string[index])))
+				scanner.currentIndex = string.index(after: index)
 			}
 		}
 		
