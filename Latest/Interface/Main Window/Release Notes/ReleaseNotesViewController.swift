@@ -121,18 +121,31 @@ class ReleaseNotesViewController: NSViewController {
     /// The current content presented on screen
     private var content: ReleaseNotesContent?
 
+	/// The translucent backdrop of the pane; content views are layered directly above it.
+	private var backdropView: NSView?
+
     // MARK: - View Lifecycle
 
 	override func viewDidLoad() {
 		super.viewDidLoad()
 
-		// Back the whole pane with the window's backdrop material so the window
-		// reads as one continuous translucent surface instead of an opaque panel.
-		let backgroundView = NSVisualEffectView()
-		backgroundView.material = .underWindowBackground
-		backgroundView.blendingMode = .behindWindow
-		backgroundView.state = .followsWindowActiveState
+		// Back the whole pane so the window reads as one continuous translucent
+		// surface. Real glass where the OS provides it, which refracts the
+		// backdrop instead of frosting it; sidebar material otherwise.
+		let backgroundView: NSView
+		if #available(macOS 26.0, *) {
+			let glassView = NSGlassEffectView()
+			glassView.style = .regular
+			backgroundView = glassView
+		} else {
+			let effectView = NSVisualEffectView()
+			effectView.material = .sidebar
+			effectView.blendingMode = .behindWindow
+			effectView.state = .followsWindowActiveState
+			backgroundView = effectView
+		}
 		backgroundView.translatesAutoresizingMaskIntoConstraints = false
+		self.backdropView = backgroundView
 		self.view.addSubview(backgroundView, positioned: .below, relativeTo: nil)
 		NSLayoutConstraint.activate([
 			backgroundView.leadingAnchor.constraint(equalTo: self.view.leadingAnchor),
@@ -140,6 +153,21 @@ class ReleaseNotesViewController: NSViewController {
 			backgroundView.topAnchor.constraint(equalTo: self.view.topAnchor),
 			backgroundView.bottomAnchor.constraint(equalTo: self.view.bottomAnchor),
 		])
+
+		// Float the app-info header on real glass where the OS provides it.
+		// The glass sits behind the header content inside the existing band;
+		// older systems keep the plain header material.
+		if #available(macOS 26.0, *) {
+			let glassView = NSGlassEffectView()
+			glassView.translatesAutoresizingMaskIntoConstraints = false
+			self.appInfoBackgroundView.addSubview(glassView, positioned: .below, relativeTo: nil)
+			NSLayoutConstraint.activate([
+				glassView.leadingAnchor.constraint(equalTo: self.appInfoBackgroundView.leadingAnchor),
+				glassView.trailingAnchor.constraint(equalTo: self.appInfoBackgroundView.trailingAnchor),
+				glassView.topAnchor.constraint(equalTo: self.appInfoBackgroundView.topAnchor),
+				glassView.bottomAnchor.constraint(equalTo: self.appInfoBackgroundView.bottomAnchor),
+			])
+		}
 	}
 
     override func viewWillAppear() {
@@ -272,7 +300,8 @@ class ReleaseNotesViewController: NSViewController {
         let view = controller.view
         
         self.addChild(controller)
-        self.view.addSubview(view, positioned: .below, relativeTo: self.view.subviews.first)
+        // Content sits above the pane's backdrop but below the header band.
+        self.view.addSubview(view, positioned: .above, relativeTo: self.backdropView)
         view.translatesAutoresizingMaskIntoConstraints = false
         
 		let topAnchor = type.isScrollable || self.app == nil ? self.view.topAnchor : appInfoBackgroundView.bottomAnchor
