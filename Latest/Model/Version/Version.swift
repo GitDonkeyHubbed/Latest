@@ -50,8 +50,10 @@ struct Version : Hashable, Comparable {
 	// MARK: - Hashing
 	
 	func hash(into hasher: inout Hasher) {
-		hasher.combine(versionNumber)
-		hasher.combine(buildNumber)
+		// Comparison ignores semver build metadata, so hashing must as well —
+		// equal values are required to produce equal hashes.
+		hasher.combine(versionNumber?.strippingBuildMetadata)
+		hasher.combine(buildNumber?.strippingBuildMetadata)
 	}
 	
 	
