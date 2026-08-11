@@ -136,6 +136,10 @@ class ReleaseNotesViewController: NSViewController {
 		if #available(macOS 26.0, *) {
 			let glassView = NSGlassEffectView()
 			glassView.style = .regular
+			// The effect only renders around a content view; an empty one
+			// satisfies the contract when the glass is a pure backdrop
+			// (macOS 27 stops drawing bare glass views entirely).
+			glassView.contentView = NSView()
 			backgroundView = glassView
 		} else {
 			let effectView = NSVisualEffectView()
@@ -159,6 +163,7 @@ class ReleaseNotesViewController: NSViewController {
 		// older systems keep the plain header material.
 		if #available(macOS 26.0, *) {
 			let glassView = NSGlassEffectView()
+			glassView.contentView = NSView()
 			glassView.translatesAutoresizingMaskIntoConstraints = false
 			self.appInfoBackgroundView.addSubview(glassView, positioned: .below, relativeTo: nil)
 			NSLayoutConstraint.activate([

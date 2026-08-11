@@ -59,6 +59,15 @@ class MainWindowController: NSWindowController, NSMenuItemValidation, NSMenuDele
 		self.window?.titlebarAppearsTransparent = true
 		self.window?.title = Bundle.main.localizedInfoDictionary?[kCFBundleNameKey as String] as! String
 		self.window?.toolbarStyle = .unified
+
+		// The detail pane is backed by glass on macOS 26+. Glass samples what is
+		// behind the window, so the window itself must not paint an opaque
+		// background over the desktop; otherwise the glass has nothing to
+		// refract and renders as flat gray.
+		if #available(macOS 26.0, *) {
+			self.window?.isOpaque = false
+			self.window?.backgroundColor = .clear
+		}
 		
 		// Set ourselves as the view menu delegate
 		NSApplication.shared.mainMenu?.item(at: MainMenuItem.view.rawValue)?.submenu?.delegate = self

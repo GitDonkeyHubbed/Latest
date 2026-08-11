@@ -30,7 +30,10 @@ class ReleaseNotesTextViewController: NSViewController {
     /// Updates the text views scroll insets
     func updateInsets(with inset: CGFloat) {
         let scrollView = self.textView.enclosingScrollView
-        
+
+        // The text view is transparent, but the scroll view draws an opaque
+        // background by default, which would hide the pane's glass backdrop.
+        scrollView?.drawsBackground = false
         scrollView?.automaticallyAdjustsContentInsets = false
         scrollView?.contentInsets = NSEdgeInsetsMake(inset + contentInset, contentInset, contentInset, contentInset)
 		scrollView?.scrollerInsets = NSEdgeInsetsMake(-contentInset, -contentInset, -contentInset, -contentInset)
