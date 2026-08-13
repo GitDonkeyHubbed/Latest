@@ -1056,6 +1056,7 @@
 			inputFileListPaths = (
 			);
 			inputPaths = (
+				"$(TARGET_BUILD_DIR)/$(INFOPLIST_PATH)",
 			);
 			name = "Update Build Number";
 			outputFileListPaths = (
@@ -1064,7 +1065,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "#!/bin/bash\n\ngit=$(sh /etc/profile; which git)\nnumber_of_commits=$(\"$git\" rev-list HEAD --count)\n\ntarget_plist=\"$TARGET_BUILD_DIR/$INFOPLIST_PATH\"\ndsym_plist=\"$DWARF_DSYM_FOLDER_PATH/$DWARF_DSYM_FILE_NAME/Contents/Info.plist\"\n\nfor plist in \"$target_plist\" \"$dsym_plist\"; do\nif [ -f \"$plist\" ]; then\n/usr/libexec/PlistBuddy -c \"Set :CFBundleVersion $number_of_commits\" \"$plist\"\nfi\ndone\n";
+			shellScript = "#!/bin/bash\n\ngit=$(sh /etc/profile; which git)\nnumber_of_commits=$(\"$git\" rev-list HEAD --count)\n\n# Fork: offset the build number far above upstream's commit counter so the\n# official Sparkle feed (which uses the same counting scheme) can never look\n# newer than a fork build and offer a downgrade.\nnumber_of_commits=$((number_of_commits + 10000))\n\ntarget_plist=\"$TARGET_BUILD_DIR/$INFOPLIST_PATH\"\ndsym_plist=\"$DWARF_DSYM_FOLDER_PATH/$DWARF_DSYM_FILE_NAME/Contents/Info.plist\"\n\nfor plist in \"$target_plist\" \"$dsym_plist\"; do\nif [ -f \"$plist\" ]; then\n/usr/libexec/PlistBuddy -c \"Set :CFBundleVersion $number_of_commits\" \"$plist\"\nfi\ndone\n";
 			showEnvVarsInLog = 0;
 		};
 /* End PBXShellScriptBuildPhase section */
