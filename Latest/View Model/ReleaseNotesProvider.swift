@@ -27,15 +27,16 @@ class ReleaseNotesProvider {
 	/// Provides release notes for the given app.
 	func releaseNotes(for app: App, with completion: @escaping (ReleaseNotes) -> Void) {
 		currentApp = app
+		let cacheKey = app.identifier.absoluteString as NSString
 		
-		if let releaseNotes = self.cache.object(forKey: app) {
+		if let releaseNotes = self.cache.object(forKey: cacheKey) {
 			completion(.success(releaseNotes))
 			return
 		}
 
 		self.loadReleaseNotes(for: app) { releaseNotes in
 			if case .success(let text) = releaseNotes {
-				self.cache.setObject(text, forKey: app)
+				self.cache.setObject(text, forKey: cacheKey)
 			}
 			
 			/// Release notes may be returned late or updated while another app was already requested. Don't forward this update, just cache in case of success.
@@ -51,7 +52,7 @@ class ReleaseNotesProvider {
 	/// The cache for release notes content.
 	///
 	/// All content is cached, since any given release notes object requires some sort of modification.
-	private var cache: NSCache<App, NSAttributedString>
+	private var cache: NSCache<NSString, NSAttributedString>
 	
 	/// Object loading HTML content for any given URL.
 	private lazy var webContentLoader = WebContentLoader()

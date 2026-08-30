@@ -16,17 +16,19 @@ enum HomebrewInstallation {
 
 	/// The URL of the `brew` executable, or `nil` if Homebrew is not installed.
 	static var brewURL: URL? {
-		var candidates = [
+		var candidates = [String]()
+
+		// Respect custom installation locations first.
+		if let prefix = ProcessInfo.processInfo.environment["HOMEBREW_PREFIX"], !prefix.isEmpty {
+			candidates.append((prefix as NSString).appendingPathComponent("bin/brew"))
+		}
+
+		candidates.append(contentsOf: [
 			// Apple Silicon
 			"/opt/homebrew/bin/brew",
 			// Intel
 			"/usr/local/bin/brew"
-		]
-
-		// Respect custom installation locations.
-		if let prefix = ProcessInfo.processInfo.environment["HOMEBREW_PREFIX"], !prefix.isEmpty {
-			candidates.append((prefix as NSString).appendingPathComponent("bin/brew"))
-		}
+		])
 
 		for path in candidates where FileManager.default.isExecutableFile(atPath: path) {
 			return URL(fileURLWithPath: path)

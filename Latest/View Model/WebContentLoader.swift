@@ -39,7 +39,7 @@ class WebContentLoader: NSObject {
 		
 		let script = WKUserScript(source: source, injectionTime: .atDocumentEnd, forMainFrameOnly: false)
 		config.userContentController.addUserScript(script)
-		config.userContentController.add(self, name: "updateHandler")
+		config.userContentController.add(WeakScriptMessageHandler(handler: self), name: "updateHandler")
 		
 		// Setup web view
 		let webView = WKWebView(frame: .zero, configuration: config)
@@ -84,6 +84,20 @@ extension WebContentLoader: WKNavigationDelegate {
 		notifyContentUpdate()
 	}
 	
+	func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
+		guard navigation == currentNavigation else { return }
+		DispatchQueue.main.async {
+			self.currentUpdateHandler?(.failure(error))
+		}
+	}
+	
+	func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
+		guard navigation == currentNavigation else { return }
+		DispatchQueue.main.async {
+			self.currentUpdateHandler?(.failure(error))
+		}
+	}
+	
 }
 
 extension WebContentLoader: WKScriptMessageHandler {
@@ -93,4 +107,17 @@ extension WebContentLoader: WKScriptMessageHandler {
 		notifyContentUpdate()
 	}
 	
+}
+
+/// A weak proxy for WKScriptMessageHandler to avoid retain cycles with WKUserContentController.
+private class WeakScriptMessageHandler: NSObject, WKScriptMessageHandler {
+	private weak var handler: WKScriptMessageHandler?
+	
+	init(handler: WKScriptMessageHandler) {
+		self.handler = handler
+	}
+	
+	func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+		handler?.userContentController(userContentController, didReceive: message)
+	}
 }

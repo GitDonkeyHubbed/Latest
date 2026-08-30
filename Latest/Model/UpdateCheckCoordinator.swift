@@ -127,7 +127,7 @@ class UpdateCheckCoordinator {
     
 	/// Callback to notify that an app has been updated.
 	private func didCheck(_ bundle: App.Bundle, _ update: Result<App.Update, Error>?) {
-		let app = self.dataStore.set(update, for: bundle)
+		guard let app = self.dataStore.set(update, for: bundle) else { return }
 		
 		DispatchQueue.main.async {
 			self.progressDelegate?.updateChecker(self, didCheckApp: app)

@@ -39,35 +39,30 @@ class AppDataStore: AppProviding {
 	
 	
 	init() {
-		self.updateScheduler = DispatchSource.makeUserDataAddSource(queue: .global())
-		self.setupScheduler()
 	}
 
 	
 	// MARK: - Delegate Scheduling
 
-	/// Schedules an update notification.
-	private let updateScheduler: DispatchSourceUserDataAdd
-	
-	/// Sets up the scheduler.
-	private func setupScheduler() {
-		// Delay notifying observers to only let that notification occur in a certain interval
-		updateScheduler.setEventHandler() { [unowned self] in
-			updateQueue.sync {
-				let apps = Array(self.apps)
-				self.notifyObservers(apps)
-			}
-		
-			// Delay the next call for 0.6 seconds
-			Thread.sleep(forTimeInterval: 0.6)
-		}
-		
-		updateScheduler.activate()
-	}
-	
+	private let schedulerQueue = DispatchQueue(label: "AppDataStoreSchedulerQueue")
+	private var isNotifyScheduled = false
+
 	/// Schedules an filter update and notifies observers of the updated app list
 	private func scheduleFilterUpdate() {
-		self.updateScheduler.add(data: 1)
+		schedulerQueue.async {
+			guard !self.isNotifyScheduled else { return }
+			self.isNotifyScheduled = true
+			self.schedulerQueue.asyncAfter(deadline: .now() + 0.6) { [weak self] in
+				guard let self else { return }
+				self.schedulerQueue.async {
+					self.isNotifyScheduled = false
+				}
+				self.updateQueue.sync {
+					let apps = Array(self.apps)
+					self.notifyObservers(apps)
+				}
+			}
+		}
 	}
 	
 	
@@ -114,10 +109,14 @@ class AppDataStore: AppProviding {
 	}
 	
 	/// Sets the given update for the given bundle and returns the combined object.
-	func set(_ update: Result<App.Update, Error>?, for bundle: App.Bundle) -> App {
+	func set(_ update: Result<App.Update, Error>?, for bundle: App.Bundle) -> App? {
 		self.updateQueue.sync {
-			guard let oldApp = self.apps.first(where: { $0.bundle == bundle }) else {
-				fatalError("App not in data store")
+			guard let oldApp = self.apps.first(where: { $0.identifier == bundle.identifier }) else {
+				return nil
+			}
+			
+			guard bundle.modificationDate >= oldApp.bundle.modificationDate else {
+				return nil
 			}
 			
 			let app = App(bundle: bundle, update: update, isIgnored: oldApp.isIgnored)

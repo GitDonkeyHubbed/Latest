@@ -27,21 +27,19 @@ class AppLibrary {
 		self.updateHandler = handler
 	}
 	
-	private lazy var updateScheduler: DispatchSourceUserDataAdd = {
-		let scheduler = DispatchSource.makeUserDataAddSource(queue: .global())
-		
-		scheduler.setEventHandler() { [weak self] in
-			guard let self else { return }
-			
-			// Multiple content changes can, coalesc futher updates
-			Thread.sleep(forTimeInterval: 10)
-			
-			self.performUpdate()
+	private let schedulerQueue = DispatchQueue(label: "AppLibrarySchedulerQueue")
+	private var updateWorkItem: DispatchWorkItem?
+
+	private func scheduleUpdate() {
+		schedulerQueue.async {
+			self.updateWorkItem?.cancel()
+			let workItem = DispatchWorkItem { [weak self] in
+				self?.performUpdate()
+			}
+			self.updateWorkItem = workItem
+			self.schedulerQueue.asyncAfter(deadline: .now() + 10, execute: workItem)
 		}
-		
-		scheduler.activate()
-		return scheduler
-	}()
+	}
 
 	
 	// MARK: - Actions
@@ -84,7 +82,7 @@ class AppLibrary {
 					dispatchGroup.leave()
 				} else {
 					// Schedule update
-					self.updateScheduler.add(data: 1)
+					self.scheduleUpdate()
 				}
 			})
 		})

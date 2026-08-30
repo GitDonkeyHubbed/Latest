@@ -74,15 +74,14 @@ final class HomebrewUpdateOperation: UpdateOperation, @unchecked Sendable {
 	override func cancel() {
 		super.cancel()
 
+		// Only terminate an already-launched process; the drain loop then finishes the
+		// operation via processDidTerminate. Do NOT finish here when the process is nil: a
+		// cancel racing runBrew could finish the operation while runBrew goes on to launch
+		// brew, orphaning it. Pre-launch cancellation is handled by the async guard in
+		// execute(); a cancel that lands after process.run() but before publication is caught
+		// by the post-launch check in runBrew.
 		let process = self.processLock.withCriticalScope { self.process }
-		if let process {
-			// Ending the process unblocks the drain loop, which then finishes the operation.
-			process.terminate()
-		} else if self.isExecuting {
-			// Cancelled between execute() and the launch; the launch guard aborts.
-			self.finish()
-		}
-		// An operation that never started is finished by the queue once it starts it.
+		process?.terminate()
 	}
 
 	override func timeoutTeardown() {
@@ -103,9 +102,20 @@ final class HomebrewUpdateOperation: UpdateOperation, @unchecked Sendable {
 		process.arguments = ["upgrade", "--cask", self.caskToken]
 
 		// Inherit the user's environment; disabling auto-update avoids a multi-minute
-		// `brew update` before the upgrade even starts.
+		// `brew update` (git tap sync) before the upgrade even starts. But the checker
+		// advertises versions from the live cask API (formulae.brew.sh/api/cask.json via
+		// UpdateRepository), while a plain `brew upgrade --cask` reads brew's locally
+		// cached API JSON — which NO_AUTO_UPDATE would otherwise leave stale past its TTL.
+		// The stale cache makes brew report "already installed / not upgrading" for a
+		// version the checker already showed as newer, surfacing as homebrewUpgradeNotPerformed
+		// with the update stuck in the list forever (Q1). HOMEBREW_FORCE_API_AUTO_UPDATE
+		// forces only the cheap API cask-data refresh even while NO_AUTO_UPDATE is set
+		// (see `brew` manpage), so the installer resolves the same version the checker did
+		// without paying for a full git `brew update`. The added refresh is a small JSON
+		// fetch, well within the monotonic download watchdog grace.
 		var environment = ProcessInfo.processInfo.environment
 		environment["HOMEBREW_NO_AUTO_UPDATE"] = "1"
+		environment["HOMEBREW_FORCE_API_AUTO_UPDATE"] = "1"
 		environment["HOMEBREW_NO_ENV_HINTS"] = "1"
 		environment["HOMEBREW_NO_INSTALL_CLEANUP"] = "1"
 		// Homebrew's boolean variables are presence-based; NO_COLOR is the documented
@@ -131,12 +141,16 @@ final class HomebrewUpdateOperation: UpdateOperation, @unchecked Sendable {
 
 		self.processLock.withCriticalScope { self.process = process }
 
-		// A concurrent cancel may have run before the process was stored; end it now.
-		if self.isCancelled {
+		// A concurrent cancel or timeout may have won between process.run() and this
+		// publication. Terminate the now-published process so cancellation/timeout during
+		// process.run() cannot leave brew running, and suppress the .installing progress for an
+		// operation that is already cancelled or finished. processDidTerminate remains the sole
+		// post-launch finish site — we only terminate here; the drain loop reaps and finishes.
+		if self.isCancelled || self.isFinished {
 			process.terminate()
+		} else {
+			self.progressState = .installing
 		}
-
-		self.progressState = .installing
 
 		// Drain the combined output before waiting on the process — waiting first could
 		// deadlock once the pipe buffer fills up. Each chunk feeds the watchdog so long
@@ -163,7 +177,9 @@ final class HomebrewUpdateOperation: UpdateOperation, @unchecked Sendable {
 			self.noteActivity()
 
 			// Big downloads may produce no output at all when brew runs without a terminal.
-			// Push the timeout out for that phase; any later output restores the regular cadence.
+			// Push the timeout out for that phase. The watchdog deadline is monotonic
+			// (max of current and proposed), so this long grace window is not shortened by
+			// the routine noteActivity() calls that follow on each later output chunk.
 			if let chunk = String(data: data, encoding: .utf8), chunk.contains("==> Downloading") {
 				self.extendWatchdog(by: 30 * 60)
 			}

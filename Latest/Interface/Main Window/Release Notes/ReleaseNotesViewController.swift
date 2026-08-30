@@ -110,6 +110,9 @@ class ReleaseNotesViewController: NSViewController {
 	
 	private let releaseNotesProvider = ReleaseNotesProvider()
     
+	/// Timer used to delay showing the loading screen to avoid flickering.
+	private var loadingTimer: Timer?
+
 	/// The app currently presented
 	private(set) var app: App? {
 		didSet {
@@ -204,6 +207,9 @@ class ReleaseNotesViewController: NSViewController {
      - parameter content: The content to be displayed
      */
 	func display(releaseNotesFor app: App?) {
+		self.loadingTimer?.invalidate()
+		self.loadingTimer = nil
+
 		guard let app = app else {
 			self.setEmptyState()
 			return
@@ -212,11 +218,19 @@ class ReleaseNotesViewController: NSViewController {
         self.display(app)
 
 		// Delay the loading screen to avoid flickering
-		let timer = Timer.scheduledTimer(withTimeInterval: 0.2, repeats: false) { (_) in
-			self.loadContent(.loading)
+		let timer = Timer.scheduledTimer(withTimeInterval: 0.2, repeats: false) { [weak self] (_) in
+			self?.loadContent(.loading)
 		}
-		releaseNotesProvider.releaseNotes(for: app) { result in
-			timer.invalidate()
+		self.loadingTimer = timer
+
+		releaseNotesProvider.releaseNotes(for: app) { [weak self] result in
+			guard let self = self else { return }
+			if self.loadingTimer === timer {
+				self.loadingTimer?.invalidate()
+				self.loadingTimer = nil
+			}
+
+			guard self.app?.identifier == app.identifier else { return }
 
 			switch result {
 				case .success(let releaseNotes):
@@ -282,6 +296,8 @@ class ReleaseNotesViewController: NSViewController {
     }
 	
 	private func setEmptyState() {
+		self.loadingTimer?.invalidate()
+		self.loadingTimer = nil
 		self.app = nil
 		
 		// Prepare for empty state

@@ -79,8 +79,14 @@ class UpdateTableViewController: NSViewController, NSMenuItemValidation, NSTable
 		AppListSettings.shared.add(self, handler: self.updateSnapshot)
         
 		UpdateCheckCoordinator.shared.appProvider.addObserver(self) { newValue in
-			self.scheduleTableViewUpdate(with: AppListSnapshot(withApps: newValue, filterQuery: self.snapshot.filterQuery), animated: true)
-			self.updateTitleAndBatch()
+			let filterQuery = self.snapshot.filterQuery
+			DispatchQueue.global(qos: .userInitiated).async {
+				let snapshot = AppListSnapshot(withApps: newValue, filterQuery: filterQuery)
+				DispatchQueue.main.async {
+					self.scheduleTableViewUpdate(with: snapshot, animated: true)
+					self.updateTitleAndBatch()
+				}
+			}
 		}
 		
 		self.updatesLabel.isHidden = true
@@ -114,8 +120,14 @@ class UpdateTableViewController: NSViewController, NSMenuItemValidation, NSTable
     @IBOutlet weak var tableView: NSTableView!
     
 	func updateSnapshot() {
-		self.scheduleTableViewUpdate(with: self.snapshot.updated(), animated: true)
-		self.updateTitleAndBatch()
+		let currentSnapshot = self.snapshot
+		DispatchQueue.global(qos: .userInitiated).async {
+			let updated = currentSnapshot.updated()
+			DispatchQueue.main.async {
+				self.scheduleTableViewUpdate(with: updated, animated: true)
+				self.updateTitleAndBatch()
+			}
+		}
 	}
 	
 	

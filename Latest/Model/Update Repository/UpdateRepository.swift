@@ -178,8 +178,14 @@ class UpdateRepository {
 
 				// Store in cache, but only data that was actually fetched successfully
 				if fetchSucceeded, let cacheURL = urlType.cacheURL {
-					try? data.write(to: cacheURL)
-					UserDefaults.standard.setValue(Date.timeIntervalSinceReferenceDate, forKey: urlType.userDefaultsKey)
+					let parentDir = cacheURL.deletingLastPathComponent()
+					try? FileManager.default.createDirectory(at: parentDir, withIntermediateDirectories: true)
+					do {
+						try data.write(to: cacheURL, options: .atomic)
+						UserDefaults.standard.setValue(Date.timeIntervalSinceReferenceDate, forKey: urlType.userDefaultsKey)
+					} catch {
+						// Write failed, do not record timestamp
+					}
 				}
 			}
 			task.resume()

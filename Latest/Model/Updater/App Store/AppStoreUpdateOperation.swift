@@ -224,14 +224,23 @@ extension AppStoreUpdateOperation: CKDownloadQueueObserver {
 
 		// `installer -target /` places the package at its predefined location inside
 		// /Applications. An app living elsewhere would be duplicated rather than
-		// updated, so fall back to the plain error for those.
-		guard self.installURL.deletingLastPathComponent().path(percentEncoded: false) == "/Applications" else {
+		// updated, so fall back to the plain error for those. Compare canonical paths
+		// (resolve symlinks + standardize) so a bundle reached through a symlinked or
+		// non-canonical /Applications path is still recognized (C2). The install target
+		// stays hard-coded to `/` server-side (C1/C6): the refuted crosscheck suggestion to
+		// target the resolved bundle path is intentionally not applied — MAS packages carry
+		// absolute paths and the helper no longer accepts a client-supplied target.
+		let applicationsURL = URL(fileURLWithPath: "/Applications", isDirectory: true).standardizedFileURL
+		guard self.installURL.resolvingSymlinksInPath().deletingLastPathComponent().standardizedFileURL == applicationsURL else {
 			self.finish(with: status.error)
 			return
 		}
 
-		// The location appStoreReceiptURL resolves to for an app bundle.
-		let receiptURL = self.installURL.appending(path: "Contents/_MASReceipt/receipt")
+		// The location appStoreReceiptURL resolves to for an app bundle. Resolve symlinks in the
+		// bundle path first (C7): the receipt destination handed to the root helper must be a
+		// real path, not one whose ancestor is a symlink that could redirect the privileged
+		// write. The helper independently refuses to traverse symlinks per component.
+		let receiptURL = self.installURL.resolvingSymlinksInPath().appending(path: "Contents/_MASReceipt/receipt")
 
 		Task { [weak self] in
 			guard let self, !self.isCancelled else {
@@ -241,12 +250,22 @@ extension AppStoreUpdateOperation: CKDownloadQueueObserver {
 			
 			self.progressState = .installing
 			
+			// C6: open a file handle on the snapshot and hand that to the helper instead of a
+			// path. The helper reads the exact bytes we opened here into a root-owned copy and
+			// verifies the signature there, so the staged file cannot be swapped between the
+			// helper's check and use. The snapshot lives in a user-writable replacement
+			// directory, so this app — not the helper — owns cleaning it up afterwards.
+			let snapshotDirectory = installerPackageURL.deletingLastPathComponent()
+			defer { try? FileManager.default.removeItem(at: snapshotDirectory) }
+
 			do {
+				let fileHandle = try FileHandle(forReadingFrom: installerPackageURL)
+				defer { try? fileHandle.close() }
+
 				// The privileged helper reports no progress; extend the watchdog so a
 				// long-running install is not mistaken for a stall.
 				self.extendWatchdog(by: 30 * 60)
-				// The installer expects a volume mount point as its target, not the app bundle.
-				try await InstallHelper.shared.installPackage(at: installerPackageURL, targetURL: "/", receiptData: receiptData, receiptURL: receiptURL)
+				try await InstallHelper.shared.installPackage(fileHandle: fileHandle, receiptData: receiptData, receiptURL: receiptURL)
 				self.finish()
 			} catch {
 				self.finish(with: error)

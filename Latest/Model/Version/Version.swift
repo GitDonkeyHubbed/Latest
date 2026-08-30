@@ -53,7 +53,6 @@ struct Version : Hashable, Comparable {
 		// Comparison ignores semver build metadata, so hashing must as well —
 		// equal values are required to produce equal hashes.
 		hasher.combine(versionNumber?.strippingBuildMetadata)
-		hasher.combine(buildNumber?.strippingBuildMetadata)
 	}
 	
 	
@@ -354,7 +353,23 @@ extension Version {
 
 // MARK: -
 
-extension OperatingSystemVersion {
+extension OperatingSystemVersion: @retroactive Comparable, @retroactive Equatable {
+	
+	public static func == (lhs: OperatingSystemVersion, rhs: OperatingSystemVersion) -> Bool {
+		lhs.majorVersion == rhs.majorVersion &&
+		lhs.minorVersion == rhs.minorVersion &&
+		lhs.patchVersion == rhs.patchVersion
+	}
+	
+	public static func < (lhs: OperatingSystemVersion, rhs: OperatingSystemVersion) -> Bool {
+		if lhs.majorVersion != rhs.majorVersion {
+			return lhs.majorVersion < rhs.majorVersion
+		}
+		if lhs.minorVersion != rhs.minorVersion {
+			return lhs.minorVersion < rhs.minorVersion
+		}
+		return lhs.patchVersion < rhs.patchVersion
+	}
 	
 	init(string: String) throws {
 		let components = string.components().flatMap({ component in

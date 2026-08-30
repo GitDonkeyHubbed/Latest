@@ -15,8 +15,15 @@ class AppDirectory {
 	let url : URL
 	
 	/// The bundles collected within this directory.
-	var bundles = [App.Bundle]() {
-		didSet {
+	private var _bundles = [App.Bundle]()
+	var bundles: [App.Bundle] {
+		get {
+			collectionQueue.sync { _bundles }
+		}
+		set {
+			collectionQueue.sync {
+				_bundles = newValue
+			}
 			handler()
 		}
 	}
@@ -29,15 +36,23 @@ class AppDirectory {
 	/// The queue on which updates to the collection are being performed.
 	private var collectionQueue = DispatchQueue(label: "DataStoreQueue")
 
+	/// The file descriptor for the open directory.
+	private var fileDescriptor: Int32 = -1
 	
 	/// The file system listener
-	private lazy var listener : DispatchSourceFileSystemObject = {
+	private lazy var listener : DispatchSourceFileSystemObject? = {
 		let descriptor = open((self.url as NSURL).fileSystemRepresentation, O_EVTONLY)
-		guard descriptor != -1 else { fatalError("Unable to open folder at url") }
+		guard descriptor != -1 else { return nil }
+		self.fileDescriptor = descriptor
 		
 		let source = DispatchSource.makeFileSystemObjectSource(fileDescriptor: descriptor,
-															   eventMask: .write)
+															   eventMask: .all)
 		
+		source.setCancelHandler { [fileDescriptor] in
+			if fileDescriptor != -1 {
+				close(fileDescriptor)
+			}
+		}
 		source.setEventHandler(handler: collectBundles)
 		
 		return source
@@ -52,12 +67,16 @@ class AppDirectory {
 	}
 	
 	deinit {
-		listener.cancel()
+		if let listener = listener {
+			listener.cancel()
+		} else if fileDescriptor != -1 {
+			close(fileDescriptor)
+		}
 	}
 	
 	/// Resumes tracking if it is not already running
 	private func resumeTracking() {
-		listener.activate()
+		listener?.activate()
 		collectBundles()
 	}
 	

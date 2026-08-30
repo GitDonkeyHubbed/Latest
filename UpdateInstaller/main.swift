@@ -10,7 +10,9 @@ import Foundation
 import os
 
 /// Code signing requirement for the main app: only Latest may connect to this daemon.
-private let appCodeSigningRequirement = "identifier \"com.max-langer.Latest\" and certificate leaf[subject.OU] = \"VFABJ5RE5Q\""
+/// `anchor apple generic` ties the requirement to Apple's certificate chain, so a
+/// locally self-signed binary reusing the identifier and team OU cannot satisfy it.
+private let appCodeSigningRequirement = "anchor apple generic and identifier \"com.max-langer.Latest\" and certificate leaf[subject.OU] = \"3XRW39J2YH\""
 
 class ServiceDelegate: NSObject, NSXPCListenerDelegate {
 	/// This method is where the NSXPCListener configures, accepts, and resumes a new incoming NSXPCConnection.

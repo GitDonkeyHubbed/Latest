@@ -20,18 +20,19 @@ class IconCache {
     }
 
 	/// The object storing app images.
-	private var cache: NSCache<App, NSImage>
+	private var cache: NSCache<NSString, NSImage>
 	
 	/// Provides the icon for the given app through the given completion handler.
     func icon(for app: App, with completion: @escaping (NSImage) -> Void) {
-        if let icon = self.cache.object(forKey: app) {
+        let key = app.identifier.absoluteString as NSString
+        if let icon = self.cache.object(forKey: key) {
             completion(icon)
 			return
         }
         
         DispatchQueue.main.async {
             let icon = NSWorkspace.shared.icon(forFile: app.fileURL.path)
-            self.cache.setObject(icon, forKey: app)
+            self.cache.setObject(icon, forKey: key)
 
             completion(icon)
         }

@@ -59,10 +59,14 @@ class HomebrewCheckerOperation: StatefulOperation, UpdateCheckerOperation, @unch
 			// installed through it. Otherwise, fall back to opening the app so its own update
 			// mechanism can take over. The scanned copy must live in /Applications — brew's
 			// default appdir — since a Caskroom entry says nothing about copies elsewhere
-			// (e.g. an app reinstalled manually after the cask install).
+			// (e.g. an app reinstalled manually after the cask install). Compare canonical paths
+			// (resolve symlinks + standardize) so a bundle reached through a symlinked or
+			// non-canonical /Applications path is still recognized and the operation stays
+			// constructible (C3).
+			let applicationsURL = URL(fileURLWithPath: "/Applications", isDirectory: true).standardizedFileURL
 			let updateAction: App.Update.Action
 			if let caskToken, let brewURL = HomebrewInstallation.brewURL, HomebrewInstallation.isCaskInstalled(caskToken, brewURL: brewURL),
-			   bundle.fileURL.deletingLastPathComponent().path(percentEncoded: false) == "/Applications" {
+			   bundle.fileURL.resolvingSymlinksInPath().deletingLastPathComponent().standardizedFileURL == applicationsURL {
 				updateAction = .builtIn(block: { app in
 					UpdateQueue.shared.addOperation(HomebrewUpdateOperation(bundleIdentifier: app.bundleIdentifier, appIdentifier: app.identifier, caskToken: caskToken, brewURL: brewURL))
 				})

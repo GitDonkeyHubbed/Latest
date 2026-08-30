@@ -41,7 +41,7 @@ class SparkleUpdateCheckerOperation: StatefulOperation, UpdateCheckerOperation, 
 	
 	/// Returns the Sparkle feed url for the app at the given URL, if available.
 	private static func feedURL(from appURL: URL) -> URL? {
-		guard let bundle = Bundle(path: appURL.path) else { return nil }
+		guard let bundle = Bundle(url: appURL) ?? Bundle(path: appURL.path) else { return nil }
 		return Sparke.feedURL(from: bundle)
 	}
 
@@ -62,7 +62,7 @@ class SparkleUpdateCheckerOperation: StatefulOperation, UpdateCheckerOperation, 
 	
 	override func execute() {
 		// Gather app and app bundle
-		guard let bundle = Bundle(identifier: self.app.bundleIdentifier) else {
+		guard let bundle = Bundle(url: self.app.fileURL) ?? Bundle(path: self.app.fileURL.path) ?? Bundle(identifier: self.app.bundleIdentifier) else {
 			self.finish(with: LatestError.updateInfoUnavailable)
 			return
 		}
@@ -128,9 +128,9 @@ extension SparkleUpdateCheckerOperation: SPUUserDriver {
 		let nsError = error as NSError
 		if nsError.domain == SUSparkleErrorDomain && nsError.code == SUError.noUpdateError.rawValue, let appcastItem = nsError.userInfo[SPULatestAppcastItemFoundKey] as? SUAppcastItem {
 			self.finish(with: appcastItem)
+		} else {
+			self.finish(with: error)
 		}
-		
-		self.finish(with: error)
 		acknowledgement()
 	}
 	

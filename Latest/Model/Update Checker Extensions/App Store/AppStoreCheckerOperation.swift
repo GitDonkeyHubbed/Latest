@@ -95,11 +95,23 @@ class AppStoreUpdateCheckerOperation: StatefulOperation, UpdateCheckerOperation,
 
 extension AppStoreUpdateCheckerOperation {
 	
+	/// Returns whether manual/external update workaround is required for the given macOS version.
+	static func requiresExternalUpdateWorkaround(for version: OperatingSystemVersion = ProcessInfo.processInfo.operatingSystemVersion) -> Bool {
+		switch version.majorVersion {
+		case 14:
+			return version >= OperatingSystemVersion(majorVersion: 14, minorVersion: 8, patchVersion: 2)
+		case 15:
+			return version >= OperatingSystemVersion(majorVersion: 15, minorVersion: 7, patchVersion: 2)
+		default:
+			return version >= OperatingSystemVersion(majorVersion: 26, minorVersion: 1, patchVersion: 0)
+		}
+	}
+	
 	/// Returns a proper update object from the given app store entry.
 	private func update(from entry: AppStoreEntry) -> App.Update {
 		let version = Version(versionNumber: entry.versionNumber, buildNumber: nil)
-		let action: App.Update.Action = if Self.isIOSAppBundle(at: app.fileURL) || AppStoreUpdateSettings.alwaysPerformManualUpdates.active {
-			// iOS Apps: Open App Store page where the user can update manually. The update operation does not work for them.
+		let action: App.Update.Action = if Self.isIOSAppBundle(at: app.fileURL) || AppStoreUpdateSettings.alwaysPerformManualUpdates.active || Self.requiresExternalUpdateWorkaround() {
+			// iOS Apps or affected macOS versions: Open App Store page where the user can update manually.
 			.external(label: NSLocalizedString("AppStoreSource", comment: "The source name of apps loaded from the App Store."), block: { app in
 				Self.openAppStorePage(for: entry)
 			})
@@ -136,9 +148,14 @@ extension AppStoreUpdateCheckerOperation {
 				// Success, forward data
 				completion(.success(entry))
 				
-			case .failure(_):
-				// Data could not be fetched, try the broader entity type
-				self.fetchAppInfo(with: "macSoftware", completion: completion)
+			case .failure(let error):
+				// If no desktopSoftware entry was found, fall back to the broader macSoftware entity type.
+				// Real errors (networking, malformed response) are propagated directly.
+				if case LatestError.updateInfoUnavailable = error {
+					self.fetchAppInfo(with: "macSoftware", completion: completion)
+				} else {
+					completion(.failure(error))
+				}
 			}
 		}
 	}

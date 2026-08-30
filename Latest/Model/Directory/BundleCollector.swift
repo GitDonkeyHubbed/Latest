@@ -18,7 +18,8 @@ enum BundleCollector {
 	/// Set of bundles that should not be included in Latest.
 	private static let excludedBundleIdentifiers = Set([
 		// Safari Web Apps
-		"com.apple.Safari.WebApp"
+		"com.apple.Safari.WebApp",
+		"com.max-langer.Latest"
 	])
 	
 	private static let appExtension = UTType.applicationBundle.preferredFilenameExtension
@@ -29,7 +30,7 @@ enum BundleCollector {
 		
 		var bundles = [App.Bundle]()
 		while let bundleURL = enumerator?.nextObject() as? URL {
-			guard !excludedSubfolders.contains(where: { bundleURL.path.contains($0) }) else {
+			guard !excludedSubfolders.contains(where: { bundleURL.pathComponents.contains($0) }) else {
 				enumerator?.skipDescendants()
 				continue
 			}

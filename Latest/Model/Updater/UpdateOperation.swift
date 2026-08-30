@@ -111,6 +111,16 @@ class UpdateOperation: StatefulOperation, @unchecked Sendable {
 	/// Must only be accessed on `watchdogQueue`.
 	private var watchdog: DispatchSourceTimer?
 
+	/// The absolute deadline currently programmed into `watchdog`.
+	///
+	/// Tracked explicitly so the watchdog can only ever be pushed *later*, never earlier: a
+	/// long grace window opened by `extendWatchdog` (e.g. a 30-minute download or install that
+	/// reports no progress) must survive the steady trickle of routine `progressState` updates,
+	/// each of which proposes the short `inactivityTimeout` again. Without this, a single later
+	/// progress event would collapse the long window back to five minutes and time out a healthy
+	/// long-running phase. Must only be accessed on `watchdogQueue`.
+	private var watchdogDeadline: DispatchTime?
+
 	/// Starts observing the operation for inactivity.
 	private func startWatchdog() {
 		self.watchdogQueue.async {
@@ -119,17 +129,32 @@ class UpdateOperation: StatefulOperation, @unchecked Sendable {
 				guard let self = self, !self.isFinished, !self.isCancelled else { return }
 				self.handleTimeout()
 			}
-			timer.schedule(deadline: .now() + Self.inactivityTimeout)
+			let deadline = DispatchTime.now() + Self.inactivityTimeout
+			self.watchdogDeadline = deadline
+			timer.schedule(deadline: deadline)
 			timer.activate()
 
 			self.watchdog = timer
 		}
 	}
 
+	/// Proposes a new deadline for the running watchdog, moving it to `max(current, proposed)`.
+	///
+	/// The deadline is monotonic between `startWatchdog` and `stopWatchdog`: a proposal earlier
+	/// than the programmed deadline is ignored, so routine progress cannot shorten a long grace
+	/// window. A no-op once the watchdog has been stopped (nil), preserving one-shot semantics —
+	/// a late proposal never resurrects a finished operation's timer. Must run on `watchdogQueue`.
+	private func proposeWatchdogDeadline(_ proposed: DispatchTime) {
+		guard let watchdog = self.watchdog else { return }
+		let deadline = self.watchdogDeadline.map { Swift.max($0, proposed) } ?? proposed
+		self.watchdogDeadline = deadline
+		watchdog.schedule(deadline: deadline)
+	}
+
 	/// Delays the timeout after progress occurred.
 	private func resetWatchdog() {
 		self.watchdogQueue.async {
-			self.watchdog?.schedule(deadline: .now() + Self.inactivityTimeout)
+			self.proposeWatchdogDeadline(.now() + Self.inactivityTimeout)
 		}
 	}
 
@@ -141,7 +166,7 @@ class UpdateOperation: StatefulOperation, @unchecked Sendable {
 	/// Delays the timeout by the given interval, for long-running phases that cannot report progress.
 	func extendWatchdog(by interval: TimeInterval) {
 		self.watchdogQueue.async {
-			self.watchdog?.schedule(deadline: .now() + interval)
+			self.proposeWatchdogDeadline(.now() + interval)
 		}
 	}
 
@@ -150,6 +175,7 @@ class UpdateOperation: StatefulOperation, @unchecked Sendable {
 		self.watchdogQueue.async {
 			self.watchdog?.cancel()
 			self.watchdog = nil
+			self.watchdogDeadline = nil
 		}
 	}
 

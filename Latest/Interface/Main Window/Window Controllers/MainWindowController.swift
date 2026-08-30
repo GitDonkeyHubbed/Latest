@@ -99,12 +99,14 @@ class MainWindowController: NSWindowController, NSMenuItemValidation, NSMenuDele
     /// Open all apps that have an update available. If apps from the Mac App Store are there as well, open the Mac App Store
     @IBAction func updateAll(_ sender: Any?) {
 		let apps = UpdateCheckCoordinator.shared.appProvider.updatableApps
+		var skipAppStoreBuiltIn = false
 		
 		// Check if there are app store updates
 		if apps.contains(where: { $0.bundle.source == .appStore }) {
 			do {
 				try AppStoreUpdateOperation.prepareForUpdates()
 			} catch {
+				skipAppStoreBuiltIn = true
 				let updatesPage = URL(string: "macappstore://apps.apple.com/updates")!
 				if !AppStoreUpdateSettings.alwaysPerformManualUpdates.active {
 					UpdateInstallHelperAlert.present(with: error, fallbackURL: updatesPage)
@@ -116,6 +118,9 @@ class MainWindowController: NSWindowController, NSMenuItemValidation, NSMenuDele
 		
 		// Iterate all updatable apps and perform update
 		apps.forEach({ app in
+			if skipAppStoreBuiltIn && app.bundle.source == .appStore {
+				return
+			}
 			if !app.isUpdating {
 				app.performUpdate(isBulkUpdate: true)
 			}
@@ -210,7 +215,7 @@ class MainWindowController: NSWindowController, NSMenuItemValidation, NSMenuDele
 		// Setup progress indicator
 		self.progressIndicator.isIndeterminate = false
         self.progressIndicator.doubleValue = 0
-        self.progressIndicator.maxValue = Double(numberOfApps - 1)
+        self.progressIndicator.maxValue = Double(max(numberOfApps, 1))
 	}
     
     /// Update the progress indicator
