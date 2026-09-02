@@ -30,6 +30,10 @@ type_body_length:
   warning: 350
   error: 600
 
+cyclomatic_complexity:
+  warning: 10
+  error: 40
+
 identifier_name:
   # Existing UpperCamelCase constants (e.g. UpdateDateKey) and underscored
   # test fixtures (v14_8_1) are reported, not failed, for now.
