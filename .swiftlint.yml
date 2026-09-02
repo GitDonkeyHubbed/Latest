@@ -1,0 +1,31 @@
+# SwiftLint configuration. Run locally with `swiftlint` from the repo root
+# (brew install swiftlint). CI runs the same in the "SwiftLint" job of
+# .github/workflows/build.yml.
+#
+# Starting posture: default rule set, warnings do not fail CI, errors do.
+# The two default error-level rules the codebase currently trips (force_cast,
+# force_try) are downgraded to warnings so the first run is green; tighten
+# them back to `error` once the existing call sites are cleaned up.
+
+excluded:
+  - Sparkle
+  - Frameworks
+  - Latest.xcodeproj
+  - DerivedData
+  - .build
+
+force_cast: warning
+force_try: warning
+
+line_length:
+  warning: 150
+  error: 400
+  ignores_urls: true
+  ignores_comments: true
+  ignores_function_declarations: true
+
+identifier_name:
+  min_length: 2
+  excluded: [id, x, y, i, j]
+
+reporter: "xcode"

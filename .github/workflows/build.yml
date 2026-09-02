@@ -12,6 +12,22 @@ permissions:
   contents: read
 
 jobs:
+  swiftlint:
+    name: SwiftLint
+    runs-on: macos-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Install SwiftLint (if the runner image lacks it)
+        run: command -v swiftlint >/dev/null || brew install swiftlint
+
+      - name: SwiftLint
+        # Config in .swiftlint.yml. Warnings are annotated on the PR; only
+        # error-severity rules fail the job.
+        run: swiftlint lint --reporter github-actions-logging
+
   build-and-test:
     name: Build and unit-test (macOS 26, Xcode 26)
     runs-on: macos-26
