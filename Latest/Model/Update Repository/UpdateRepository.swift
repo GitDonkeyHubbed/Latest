@@ -9,7 +9,7 @@
 import AppKit
 
 /// User defaults key for storing the last cache update date.
-private let UpdateDateKey = "UpdateDateKey"
+private let updateDateKey = "UpdateDateKey"
 
 /// A storage that fetches update information from an online source.
 ///
@@ -266,7 +266,7 @@ class UpdateRepository {
 		
 		/// The user defaults key used for storing the cache access information.
 		var userDefaultsKey: String {
-			rawValue + UpdateDateKey
+			rawValue + updateDateKey
 		}
 		
 	}

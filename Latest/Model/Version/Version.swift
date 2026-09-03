@@ -95,51 +95,8 @@ struct Version : Hashable, Comparable {
 		for i in 0..<min(count1, count2) {
 			guard case .component(let component1) = c1[i], case .component(let component2) = c2[i] else { continue }
 			
-			let atomsCount1 = component1.count
-			let atomsCount2 = component2.count
-			for i in 0..<min(atomsCount1, atomsCount2) {
-				let component1 = component1[i]
-				let component2 = component2[i]
-				
-				// Compare numbers
-				if case .number(let value1) = component1, case .number(let value2) = component2 {
-					if value1 > value2 {
-						return .newer // Think "1.3" vs "1.2"
-					} else if value2 > value1 {
-						return .older // Think "1.2" vs "1.3"
-					}
-				}
-				
-				// Compare letters
-				else if case .string(let value1) = component1, case .string(let value2) = component2 {
-					switch value1.compare(value2) {
-					case .orderedAscending:
-						return .older // Think "1.2A" vs "1.2B"
-					case .orderedDescending:
-						return .newer // Think "1.2B" vs "1.2A"
-					default: ()
-					}
-				}
-				
-				
-				// Not the same type? Now we have to do some validity checking
-				else if case .string(_) = component1 {
-					return .older // Think "1.2A" vs "1.2.2"
-				}
-				
-				else if case .string(_) = component2 {
-					return .newer // Think "1.2.3" vs "1.2A"
-				}
-				
-				
-				// One is a number and the other is a period. The period is invalid
-				else if case .number(_) = component1 {
-					return .older // Think "1.2.." vs "1.2.0"
-				}
-				
-				else if case .number(_) = component2 {
-					return .newer // Think "1.2.3" vs "1.2.."
-				}
+			if let result = compareAtoms(component1, component2) {
+				return result
 			}
 		}
 		
@@ -164,6 +121,60 @@ struct Version : Hashable, Comparable {
 		}
 		
 		return .equal // Think "1.2" vs "1.2"
+	}
+	
+	/// Compares the atoms of two version components, returning the comparison
+	/// result of the first pair of atoms that differ, or nil if they are equal
+	/// (or one side runs out of atoms before a difference is found).
+	private static func compareAtoms(_ atoms1: [Segment.Atom], _ atoms2: [Segment.Atom]) -> CheckingResult? {
+		let atomsCount1 = atoms1.count
+		let atomsCount2 = atoms2.count
+		for i in 0..<min(atomsCount1, atomsCount2) {
+			let component1 = atoms1[i]
+			let component2 = atoms2[i]
+			
+			// Compare numbers
+			if case .number(let value1) = component1, case .number(let value2) = component2 {
+				if value1 > value2 {
+					return .newer // Think "1.3" vs "1.2"
+				} else if value2 > value1 {
+					return .older // Think "1.2" vs "1.3"
+				}
+			}
+			
+			// Compare letters
+			else if case .string(let value1) = component1, case .string(let value2) = component2 {
+				switch value1.compare(value2) {
+				case .orderedAscending:
+					return .older // Think "1.2A" vs "1.2B"
+				case .orderedDescending:
+					return .newer // Think "1.2B" vs "1.2A"
+				default: ()
+				}
+			}
+			
+			
+			// Not the same type? Now we have to do some validity checking
+			else if case .string(_) = component1 {
+				return .older // Think "1.2A" vs "1.2.2"
+			}
+			
+			else if case .string(_) = component2 {
+				return .newer // Think "1.2.3" vs "1.2A"
+			}
+			
+			
+			// One is a number and the other is a period. The period is invalid
+			else if case .number(_) = component1 {
+				return .older // Think "1.2.." vs "1.2.0"
+			}
+			
+			else if case .number(_) = component2 {
+				return .newer // Think "1.2.3" vs "1.2.."
+			}
+		}
+		
+		return nil
 	}
 }
 

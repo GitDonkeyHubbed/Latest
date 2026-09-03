@@ -8,7 +8,7 @@
 
 import Cocoa
 
-fileprivate let ReleaseNotesTextParagraphCellIdentifier = NSUserInterfaceItemIdentifier(rawValue: "ReleaseNotesTextParagraphCellIdentifier")
+fileprivate let releaseNotesTextParagraphCellIdentifier = NSUserInterfaceItemIdentifier(rawValue: "ReleaseNotesTextParagraphCellIdentifier")
 
 /// The controller displaying the actual release notes
 class ReleaseNotesTextViewController: NSViewController {
