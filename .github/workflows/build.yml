@@ -14,7 +14,9 @@ permissions:
 jobs:
   swiftlint:
     name: SwiftLint
-    runs-on: macos-latest
+    # Pinned to the same macOS version as build-and-test so image updates to
+    # macos-latest can't silently change the SwiftLint toolchain.
+    runs-on: macos-26
     timeout-minutes: 10
     steps:
       - name: Check out

@@ -40,7 +40,7 @@ jobs:
           persist-credentials: false
 
       - name: PR-Agent Pro — Automated AI PR Reviewer & Security Auditor
-        uses: meanusarcanus/ai-pr-reviewer-action@v1.0.0
+        uses: meanusarcanus/ai-pr-reviewer-action@9a2e09833376f54db095b71ca638d2204485c31a # v1.0.0
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           severity_threshold: "Medium"
@@ -56,4 +56,4 @@ jobs:
       checks: write
     steps:
       - name: Require PR Test Plan
-        uses: YourFam/require-pr-test-plan@v1.0.6
+        uses: YourFam/require-pr-test-plan@24e0553d72a82b666865a9a77c101481a206f91b # v1.0.6
