@@ -39,14 +39,14 @@ class OSVersionTest: XCTestCase {
 	}
 	
 	func testOperatingSystemVersionComparison() {
-		let v14_8_1 = OperatingSystemVersion(majorVersion: 14, minorVersion: 8, patchVersion: 1)
-		let v14_8_2 = OperatingSystemVersion(majorVersion: 14, minorVersion: 8, patchVersion: 2)
-		let v15_0_0 = OperatingSystemVersion(majorVersion: 15, minorVersion: 0, patchVersion: 0)
+		let v14dot8dot1 = OperatingSystemVersion(majorVersion: 14, minorVersion: 8, patchVersion: 1)
+		let v14dot8dot2 = OperatingSystemVersion(majorVersion: 14, minorVersion: 8, patchVersion: 2)
+		let v15dot0dot0 = OperatingSystemVersion(majorVersion: 15, minorVersion: 0, patchVersion: 0)
 		
-		XCTAssertTrue(v14_8_1 < v14_8_2)
-		XCTAssertTrue(v14_8_2 >= v14_8_1)
-		XCTAssertTrue(v14_8_2 < v15_0_0)
-		XCTAssertFalse(v15_0_0 < v14_8_2)
+		XCTAssertTrue(v14dot8dot1 < v14dot8dot2)
+		XCTAssertTrue(v14dot8dot2 >= v14dot8dot1)
+		XCTAssertTrue(v14dot8dot2 < v15dot0dot0)
+		XCTAssertFalse(v15dot0dot0 < v14dot8dot2)
 	}
 	
 	func testRequiresExternalUpdateWorkaround() {

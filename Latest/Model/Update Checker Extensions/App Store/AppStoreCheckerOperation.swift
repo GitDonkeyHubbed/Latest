@@ -9,7 +9,7 @@
 import Cocoa
 import ServiceManagement
 
-let MalformedURLError = NSError(domain: NSURLErrorDomain, code: NSURLErrorUnsupportedURL, userInfo: nil)
+let malformedURLError = NSError(domain: NSURLErrorDomain, code: NSURLErrorUnsupportedURL, userInfo: nil)
 
 /// The operation for checking for updates for a Mac App Store app.
 class AppStoreUpdateCheckerOperation: StatefulOperation, UpdateCheckerOperation, @unchecked Sendable {
@@ -166,7 +166,7 @@ extension AppStoreUpdateCheckerOperation {
 	private func fetchAppInfo(with entityType: String, completion: @escaping (_ result: Result<AppStoreEntry, Error>) -> ()) {
 		// Build URL
 		guard let endpoint = URL(string: "https://itunes.apple.com/lookup") else {
-			completion(.failure(MalformedURLError))
+			completion(.failure(malformedURLError))
 			return
 		}
 
@@ -180,7 +180,7 @@ extension AppStoreUpdateCheckerOperation {
 			URLQueryItem(name: "bundleId", value: self.app.bundleIdentifier)
 		]
 		guard let url = components?.url else {
-			completion(.failure(MalformedURLError))
+			completion(.failure(malformedURLError))
 			return
 		}
 		
@@ -188,7 +188,7 @@ extension AppStoreUpdateCheckerOperation {
 		let request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalAndRemoteCacheData, timeoutInterval: 30)
 		let dataTask = URLSession.shared.dataTask(with: request) { (data, response, error) in
 			guard error == nil, let data = data else {
-				completion(.failure(MalformedURLError))
+				completion(.failure(malformedURLError))
 				return
 			}
 			
@@ -270,7 +270,7 @@ fileprivate struct AppStoreEntry: Decodable {
 		
 		let pageURL = try container.decode(String.self, forKey: .pageURL)
 		guard let url = URL(string: pageURL.replacingOccurrences(of: "https", with: "macappstore")) else {
-			throw MalformedURLError
+			throw malformedURLError
 		}
 		self.pageURL = url
 		

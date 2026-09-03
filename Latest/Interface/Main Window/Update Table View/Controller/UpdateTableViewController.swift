@@ -131,135 +131,6 @@ class UpdateTableViewController: NSViewController, NSMenuItemValidation, NSTable
 	}
 	
 	
-    // MARK: Table View Delegate
-	
-	private func contentCell(for app: App) -> NSView? {
-        guard let cell = tableView.makeView(withIdentifier: NSUserInterfaceItemIdentifier(rawValue: "MLMUpdateCellIdentifier"), owner: self) as? UpdateCell else {
-            return nil
-        }
-		
-		// Only update image if needed, as this might result in flicker
-		if cell.app != app {
-			IconCache.shared.icon(for: app) { (image) in
-				cell.imageView?.image = image
-			}
-		}
-
-		cell.app = app
-		cell.filterQuery = self.snapshot.filterQuery
-
-        return cell
-	}
-	
-	private func headerCell(of section: AppListSnapshot.Section) -> NSView? {
-		let view = self.tableView.makeView(withIdentifier: NSUserInterfaceItemIdentifier(rawValue: "MLMUpdateCellSectionIdentifier"), owner: self) as? UpdateGroupCellView
-		
-		view?.section = section
-		
-		return view
-	}
-    
-    func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
-		// Ensure the index is valid
-		guard row >= 0 && row < self.apps.count else { return nil }
-		
-		switch self.apps[row] {
-		case .app(let app):
-			return self.contentCell(for: app)
-		case .section(let section):
-			return self.headerCell(of: section)
-		}
-    }
-    
-    func tableView(_ tableView: NSTableView, rowViewForRow row: Int) -> NSTableRowView? {
-		// Ensure the index is valid
-		guard row >= 0 && row < self.apps.count else { return nil }
-		
-		if self.snapshot.isSectionHeader(at: row) {
-			guard let view = tableView.rowView(atRow: row, makeIfNecessary: false) else {
-				return UpdateGroupRowView()
-			}
-			
-			return view
-		}
-		
-		return nil
-    }
-    
-    func tableView(_ tableView: NSTableView, heightOfRow row: Int) -> CGFloat {
-		// Ensure the index is valid
-		guard row >= 0 && row < self.apps.count else { return -1 }
-		return self.snapshot.isSectionHeader(at: row) ? 27 : 65
-    }
-    
-    func tableView(_ tableView: NSTableView, isGroupRow row: Int) -> Bool {
-		// Ensure the index is valid
-		guard row >= 0 && row < self.apps.count else { return false }
-        return self.snapshot.isSectionHeader(at: row)
-    }
-    
-    func tableView(_ tableView: NSTableView, rowActionsForRow row: Int, edge: NSTableView.RowActionEdge) -> [NSTableViewRowAction] {
-		// Ensure the index is valid
-		guard row >= 0 && row < self.apps.count else { return [] }
-
-		// Prevent section headers from displaying row actions
-		if self.snapshot.isSectionHeader(at: row) { return [] }
-		
-        if edge == .trailing {
-			guard let app = self.snapshot.app(at: row) else { return [] }
-			
-			// Don't provide an update action if the app has no update available
-			if !app.updateAvailable || app.isUpdating {
-				return []
-			}
-			
-            let action = NSTableViewRowAction(style: .regular, title: updateTitle(for: app), handler: { (action, row) in
-                self.updateApp(atIndex: row)
-				tableView.rowActionsVisible = false
-            })
-			
-			action.image = NSImage(systemSymbolName: "square.and.arrow.down", accessibilityDescription: nil)
-			action.backgroundColor = .systemCyan
-			
-            return [action]
-        } else if edge == .leading {
-			let open = NSTableViewRowAction(style: .regular, title: NSLocalizedString("OpenAction", comment: "Action to open a given app.")) { action, row in
-				self.openApp(at: row)
-				tableView.rowActionsVisible = false
-			}
-			open.image = NSImage(systemSymbolName: "arrow.up.forward.app", accessibilityDescription: nil)
-			
-            let reveal = NSTableViewRowAction(style: .regular, title: NSLocalizedString("RevealAction", comment: "Revea in Finder Row action"), handler: { (action, row) in
-                self.showAppInFinder(at: row)
-				tableView.rowActionsVisible = false
-            })
-			reveal.backgroundColor = .systemGray
-			reveal.image = NSImage(systemSymbolName: "finder", accessibilityDescription: nil)
-			
-            return [open, reveal]
-        }
-        
-        return []
-    }
-    
-    func tableView(_ tableView: NSTableView, shouldSelectRow row: Int) -> Bool {
-		// Ensure the index is valid
-		guard row >= 0 && row < self.apps.count else { return false }
-
-        return !self.snapshot.isSectionHeader(at: row)
-    }
-    
-    func tableViewSelectionDidChange(_ notification: Notification) {
-        self.selectApp(at: self.tableView.selectedRow)
-    }
-    
-    // MARK: Table View Data Source
-    
-    func numberOfRows(in tableView: NSTableView) -> Int {
-		return self.apps.count
-    }
-	
-	
 	// MARK: Update Scheduling
 	
 	/// The next snapshot to be applied to the table view.
@@ -570,4 +441,135 @@ class UpdateTableViewController: NSViewController, NSMenuItemValidation, NSTable
 		}
 	}
     
+}
+
+
+// MARK: - Table View Delegate & Data Source
+
+extension UpdateTableViewController {
+
+	private func contentCell(for app: App) -> NSView? {
+        guard let cell = tableView.makeView(withIdentifier: NSUserInterfaceItemIdentifier(rawValue: "MLMUpdateCellIdentifier"), owner: self) as? UpdateCell else {
+            return nil
+        }
+		
+		// Only update image if needed, as this might result in flicker
+		if cell.app != app {
+			IconCache.shared.icon(for: app) { (image) in
+				cell.imageView?.image = image
+			}
+		}
+
+		cell.app = app
+		cell.filterQuery = self.snapshot.filterQuery
+
+        return cell
+	}
+	
+	private func headerCell(of section: AppListSnapshot.Section) -> NSView? {
+		let view = self.tableView.makeView(withIdentifier: NSUserInterfaceItemIdentifier(rawValue: "MLMUpdateCellSectionIdentifier"), owner: self) as? UpdateGroupCellView
+		
+		view?.section = section
+		
+		return view
+	}
+    
+    func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
+		// Ensure the index is valid
+		guard row >= 0 && row < self.apps.count else { return nil }
+		
+		switch self.apps[row] {
+		case .app(let app):
+			return self.contentCell(for: app)
+		case .section(let section):
+			return self.headerCell(of: section)
+		}
+    }
+    
+    func tableView(_ tableView: NSTableView, rowViewForRow row: Int) -> NSTableRowView? {
+		// Ensure the index is valid
+		guard row >= 0 && row < self.apps.count else { return nil }
+		
+		if self.snapshot.isSectionHeader(at: row) {
+			guard let view = tableView.rowView(atRow: row, makeIfNecessary: false) else {
+				return UpdateGroupRowView()
+			}
+			
+			return view
+		}
+		
+		return nil
+    }
+    
+    func tableView(_ tableView: NSTableView, heightOfRow row: Int) -> CGFloat {
+		// Ensure the index is valid
+		guard row >= 0 && row < self.apps.count else { return -1 }
+		return self.snapshot.isSectionHeader(at: row) ? 27 : 65
+    }
+    
+    func tableView(_ tableView: NSTableView, isGroupRow row: Int) -> Bool {
+		// Ensure the index is valid
+		guard row >= 0 && row < self.apps.count else { return false }
+        return self.snapshot.isSectionHeader(at: row)
+    }
+    
+    func tableView(_ tableView: NSTableView, rowActionsForRow row: Int, edge: NSTableView.RowActionEdge) -> [NSTableViewRowAction] {
+		// Ensure the index is valid
+		guard row >= 0 && row < self.apps.count else { return [] }
+
+		// Prevent section headers from displaying row actions
+		if self.snapshot.isSectionHeader(at: row) { return [] }
+		
+        if edge == .trailing {
+			guard let app = self.snapshot.app(at: row) else { return [] }
+			
+			// Don't provide an update action if the app has no update available
+			if !app.updateAvailable || app.isUpdating {
+				return []
+			}
+			
+            let action = NSTableViewRowAction(style: .regular, title: updateTitle(for: app), handler: { (action, row) in
+                self.updateApp(atIndex: row)
+				tableView.rowActionsVisible = false
+            })
+			
+			action.image = NSImage(systemSymbolName: "square.and.arrow.down", accessibilityDescription: nil)
+			action.backgroundColor = .systemCyan
+			
+            return [action]
+        } else if edge == .leading {
+			let open = NSTableViewRowAction(style: .regular, title: NSLocalizedString("OpenAction", comment: "Action to open a given app.")) { action, row in
+				self.openApp(at: row)
+				tableView.rowActionsVisible = false
+			}
+			open.image = NSImage(systemSymbolName: "arrow.up.forward.app", accessibilityDescription: nil)
+			
+            let reveal = NSTableViewRowAction(style: .regular, title: NSLocalizedString("RevealAction", comment: "Revea in Finder Row action"), handler: { (action, row) in
+                self.showAppInFinder(at: row)
+				tableView.rowActionsVisible = false
+            })
+			reveal.backgroundColor = .systemGray
+			reveal.image = NSImage(systemSymbolName: "finder", accessibilityDescription: nil)
+			
+            return [open, reveal]
+        }
+        
+        return []
+    }
+    
+    func tableView(_ tableView: NSTableView, shouldSelectRow row: Int) -> Bool {
+		// Ensure the index is valid
+		guard row >= 0 && row < self.apps.count else { return false }
+
+        return !self.snapshot.isSectionHeader(at: row)
+    }
+    
+    func tableViewSelectionDidChange(_ notification: Notification) {
+        self.selectApp(at: self.tableView.selectedRow)
+    }
+    
+    func numberOfRows(in tableView: NSTableView) -> Int {
+		return self.apps.count
+    }
+
 }

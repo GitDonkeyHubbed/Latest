@@ -9,7 +9,7 @@
 import Cocoa
 
 /// The identifier used for the update item view
-fileprivate let UpdateItemViewIdentifier = NSUserInterfaceItemIdentifier(rawValue: "com.max-langer.latest.update-item-identifier")
+fileprivate let updateItemViewIdentifier = NSUserInterfaceItemIdentifier(rawValue: "com.max-langer.latest.update-item-identifier")
 
 fileprivate extension NSTouchBarItem.Identifier {
     
@@ -45,7 +45,7 @@ extension UpdateTableViewController: NSTouchBarDelegate {
         case .updatesScrubber:
             let scrubber = NSScrubber()
             
-            scrubber.register(UpdateItemView.self, forItemIdentifier: UpdateItemViewIdentifier)
+            scrubber.register(UpdateItemView.self, forItemIdentifier: updateItemViewIdentifier)
             scrubber.mode = .free
             scrubber.showsArrowButtons = true
             scrubber.selectionBackgroundStyle = .roundedBackground
@@ -137,7 +137,7 @@ extension UpdateTableViewController: NSScrubberDataSource, NSScrubberDelegate, N
     }
 	
 	private func view(for app: App, in scrubber: NSScrubber) -> NSScrubberItemView {
-		guard let view = scrubber.makeItem(withIdentifier: UpdateItemViewIdentifier, owner: nil) as? UpdateItemView else {
+		guard let view = scrubber.makeItem(withIdentifier: updateItemViewIdentifier, owner: nil) as? UpdateItemView else {
             return NSScrubberItemView()
         }
         

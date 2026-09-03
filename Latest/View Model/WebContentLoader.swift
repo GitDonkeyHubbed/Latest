@@ -14,7 +14,7 @@ class WebContentLoader: NSObject {
 	/// Loads contents for the given URL.
 	///
 	/// The update handler may be called multiple times, if contents change. The caller is responsible for determining whether updates are still relevant.
-	func load(from url: URL, contentUpdateHandler: @escaping(Result<String, Error>) -> Void) {
+	func load(from url: URL, contentUpdateHandler: @escaping (Result<String, Error>) -> Void) {
 		currentUpdateHandler = contentUpdateHandler
 		currentNavigation = webView.load(URLRequest(url: url))
 	}
