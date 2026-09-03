@@ -1,0 +1,46 @@
+# SwiftLint configuration. Run locally with `swiftlint` from the repo root
+# (brew install swiftlint). CI runs the same in the "SwiftLint" job of
+# .github/workflows/build.yml.
+#
+# Starting posture: default rule set, warnings do not fail CI, errors do.
+# Default error-level rules the codebase currently trips are downgraded to
+# warnings so CI is green from day one (force_cast, force_try, identifier
+# naming, attribute spacing, an oversized type body and one very long line).
+# Tighten them back to `error` rule by rule as the call sites get cleaned up.
+
+excluded:
+  - Sparkle
+  - Frameworks
+  - Latest.xcodeproj
+  - DerivedData
+  - .build
+
+force_cast: warning
+force_try: warning
+attribute_name_spacing: warning
+
+line_length:
+  warning: 150
+  error: 500
+  ignores_urls: true
+  ignores_comments: true
+  ignores_function_declarations: true
+
+type_body_length:
+  warning: 350
+  error: 600
+
+cyclomatic_complexity:
+  warning: 10
+  error: 40
+
+identifier_name:
+  # Existing UpperCamelCase constants (e.g. UpdateDateKey) and underscored
+  # test fixtures (v14_8_1) are reported, not failed, for now.
+  severity: warning
+  validates_start_with_lowercase: warning
+  allowed_symbols: ["_"]
+  min_length: 2
+  excluded: [id, x, y, i, j]
+
+reporter: "xcode"

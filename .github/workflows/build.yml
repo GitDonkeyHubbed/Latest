@@ -12,6 +12,24 @@ permissions:
   contents: read
 
 jobs:
+  swiftlint:
+    name: SwiftLint
+    # Pinned to the same macOS version as build-and-test so image updates to
+    # macos-latest can't silently change the SwiftLint toolchain.
+    runs-on: macos-26
+    timeout-minutes: 10
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Install SwiftLint (if the runner image lacks it)
+        run: command -v swiftlint >/dev/null || brew install swiftlint
+
+      - name: SwiftLint
+        # Config in .swiftlint.yml. Warnings are annotated on the PR; only
+        # error-severity rules fail the job.
+        run: swiftlint lint --reporter github-actions-logging
+
   build-and-test:
     name: Build and unit-test (macOS 26, Xcode 26)
     runs-on: macos-26
