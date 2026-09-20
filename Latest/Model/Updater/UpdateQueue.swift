@@ -21,6 +21,9 @@ class UpdateQueue: OperationQueue, @unchecked Sendable {
 	/// The shared instance of the queue.
 	static let shared = UpdateQueue()
 	
+	/// Invoked after an update operation finishes (success, failure, or cancel).
+	var onOperationFinished: ((App.Bundle.Identifier) -> Void)?
+	
 	
 	// MARK: - Public Methods
 	
@@ -58,6 +61,12 @@ class UpdateQueue: OperationQueue, @unchecked Sendable {
 			if let brewOperation = operation as? HomebrewUpdateOperation,
 			   let previousBrewOperation = self.operations.compactMap({ $0 as? HomebrewUpdateOperation }).last {
 				brewOperation.addDependency(previousBrewOperation)
+			}
+
+			let existingCompletion = operation.completionBlock
+			operation.completionBlock = { [weak self] in
+				existingCompletion?()
+				self?.onOperationFinished?(operation.appIdentifier)
 			}
 
 			super.addOperation(op)

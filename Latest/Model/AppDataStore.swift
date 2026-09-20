@@ -76,6 +76,13 @@ class AppDataStore: AppProviding {
 		}
 	}
 	
+	/// Returns the stored app with the given identifier, if any.
+	func app(identifiedBy identifier: App.Bundle.Identifier) -> App? {
+		updateQueue.sync {
+			self.apps.first(where: { $0.identifier == identifier })
+		}
+	}
+	
 	/// A subset of apps that can be updated. Ignored apps are not part of this list.
 	var updatableApps: [App] {
 		updateQueue.sync {
@@ -92,19 +99,34 @@ class AppDataStore: AppProviding {
 	
 	/// Updates the store with the given set of app bundles.
 	///
-	/// It returns a set with matching app objects, containing the given bundles with their associated updates.
+	/// Returns apps that are new or whose on-disk bundle changed (version or
+	/// modification date). Those need a fresh update check. Equality of `App`
+	/// only considers identifier and version, so a replacement that kept the
+	/// same version string (stale `NSBundle` cache, or a build-only bump that
+	/// failed to parse) used to be treated as unchanged and never re-checked.
 	func set(appBundles: Set<App.Bundle>) -> Set<App> {
 		self.updateQueue.sync {
-			let oldApps = self.apps
-			self.apps = Set(appBundles.map({ bundle in
-				if let app = oldApps.first(where: { $0.identifier == bundle.identifier }) {
-					return app.with(bundle: bundle)
+			var oldAppsByIdentifier = [App.Bundle.Identifier: App]()
+			for app in self.apps {
+				oldAppsByIdentifier[app.identifier] = app
+			}
+			var changed = Set<App>()
+			
+			self.apps = Set(appBundles.map { bundle in
+				if let app = oldAppsByIdentifier[bundle.identifier] {
+					let updated = app.with(bundle: bundle)
+					if app.version != bundle.version || app.bundle.modificationDate != bundle.modificationDate {
+						changed.insert(updated)
+					}
+					return updated
 				}
 				
-				return App(bundle: bundle, update: nil, isIgnored: self.isIdentifierIgnored(bundle.bundleIdentifier))
-			}))
+				let newApp = App(bundle: bundle, update: nil, isIgnored: self.isIdentifierIgnored(bundle.bundleIdentifier))
+				changed.insert(newApp)
+				return newApp
+			})
 			
-			return self.apps.subtracting(oldApps)
+			return changed
 		}
 	}
 	

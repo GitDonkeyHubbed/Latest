@@ -49,6 +49,12 @@ class UpdateCheckCoordinator {
 	/// The shared instance of the update checker.
 	static let shared = UpdateCheckCoordinator()
 	
+	private init() {
+		UpdateQueue.shared.onOperationFinished = { [weak self] identifier in
+			self?.handleFinishedUpdate(for: identifier)
+		}
+	}
+	
 	
 	// MARK: - Update Checking
 	
@@ -90,7 +96,35 @@ class UpdateCheckCoordinator {
 			return
 		}
 
-		self.runUpdateCheck(on: self.library.bundles)
+		// Re-read bundles from disk first. A later reload used to reuse the
+		// last cached scan, so an app that had just been updated could be
+		// compared against its pre-install version and stay in the list.
+		self.library.refreshInstalledBundles(notifyHandler: false) { [weak self] bundles in
+			guard let self else { return }
+			_ = self.dataStore.set(appBundles: Set(bundles))
+			self.runUpdateCheck(on: bundles)
+		}
+	}
+	
+	/// Re-reads installed apps after an updater finishes so the list can drop
+	/// the app as soon as the new bundle is on disk.
+	private func handleFinishedUpdate(for identifier: App.Bundle.Identifier) {
+		self.refreshAfterInstall(for: identifier)
+		
+		// Sparkle can report "installed" slightly before the replacement
+		// bundle's Info.plist is visible. A second pass covers that race.
+		DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + 2) { [weak self] in
+			self?.refreshAfterInstall(for: identifier)
+		}
+	}
+	
+	private func refreshAfterInstall(for identifier: App.Bundle.Identifier) {
+		self.library.refreshInstalledBundles { [weak self] _ in
+			guard let self else { return }
+			if let app = self.dataStore.app(identifiedBy: identifier), app.updateAvailable {
+				self.runUpdateCheck(on: [app.bundle])
+			}
+		}
 	}
 	
 	/// Performs the update check on the given bundles.

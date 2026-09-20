@@ -47,15 +47,27 @@ extension App {
 			self.updateAction = updateAction
 		}
 
-		/// Whether an update is available for the given app.
-		var updateAvailable: Bool {
-			var updateAvailable = app.version < remoteVersion
+		/// Whether this update is newer than the given locally installed bundle
+		/// and compatible with the running OS.
+		///
+		/// The `Update` object keeps the bundle it was created with. After an
+		/// in-app install the data store replaces that local bundle via
+		/// `App.with(bundle:)` while keeping this same `Update`. Comparing
+		/// against the original bundle would keep the app in Available Updates
+		/// even though the newer version is already on disk.
+		func isAvailable(for bundle: App.Bundle) -> Bool {
+			var available = bundle.version < remoteVersion
 			
-			if updateAvailable, let minimumOSVersion {
-				updateAvailable = ProcessInfo.processInfo.isOperatingSystemAtLeast(minimumOSVersion)
+			if available, let minimumOSVersion {
+				available = ProcessInfo.processInfo.isOperatingSystemAtLeast(minimumOSVersion)
 			}
 			
-			return updateAvailable
+			return available
+		}
+		
+		/// Whether an update is available relative to the bundle this update was created for.
+		var updateAvailable: Bool {
+			isAvailable(for: app)
 		}
 		
 		/// Whether the app is currently being updated.

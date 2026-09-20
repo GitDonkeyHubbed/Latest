@@ -85,4 +85,16 @@ class AppDirectory {
 		bundles = BundleCollector.collectBundles(at: self.url)
 	}
 	
+	/// Re-reads bundles from disk without notifying the directory change handler.
+	///
+	/// Used when the coordinator already owns a refresh (after an in-app
+	/// update or a manual reload) and must not also start the 10-second
+	/// filesystem debounce.
+	func recollectSilently() {
+		let collected = BundleCollector.collectBundles(at: self.url)
+		collectionQueue.sync {
+			_bundles = collected
+		}
+	}
+	
 }
