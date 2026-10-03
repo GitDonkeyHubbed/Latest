@@ -112,7 +112,9 @@ extension App {
 		/// Returns a sanitized update for the given app bundle.
 		func sanitized(for bundle: App.Bundle) -> Update {
 			let version = remoteVersion.sanitize(with: bundle.version)
-			guard version != remoteVersion else { return self }
+
+			// Compare the strings: Version's `==` means equal precedence, which a moved build number may well keep.
+			guard version.versionNumber != remoteVersion.versionNumber || version.buildNumber != remoteVersion.buildNumber else { return self }
 			
 			// Modify just the remote version
 			return Update(app: app, remoteVersion: version, minimumOSVersion: minimumOSVersion, source: source, date: date, releaseNotes: releaseNotes, updateAction: updateAction)

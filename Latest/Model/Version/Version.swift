@@ -12,7 +12,7 @@ import Foundation
  A Version represents a single version of an app. It contains both the version number and the build number to uniquely
  identify an app (in theory).
  Comparisons of versions results in an actual comparison. I.E. 1.4.2 > 1.3.5
- Also, if the two versions are the same, or the strings are not parsable, the build numbers get compared.
+ Build numbers are compared instead when both sides carry usable ones, see `compare(_:_:)`.
  This class is very much work in progress and needs some deep thoughts on edge cases and a more clever implementation
  */
 struct Version : Hashable, Comparable {
@@ -50,9 +50,12 @@ struct Version : Hashable, Comparable {
 	// MARK: - Hashing
 	
 	func hash(into hasher: inout Hasher) {
-		// Comparison ignores semver build metadata, so hashing must as well —
-		// equal values are required to produce equal hashes.
-		hasher.combine(versionNumber?.strippingBuildMetadata)
+		// Equal values must hash equally, but `==` means "same update precedence", not "same
+		// strings": "1.2" equals "1.2.0", and two values can be equal through their build numbers
+		// while their version numbers differ, or vice versa. Chained, these equalities link
+		// practically every pair of versions — (1.0, 100) == (2.0, 100) == (2.0, nil) == (2.0, 200) —
+		// so no hash finer than a constant one keeps equal values together. Nothing uses versions
+		// as set elements or dictionary keys (App hashes its identifier only), so this costs nothing.
 	}
 	
 	
@@ -64,15 +67,26 @@ struct Version : Hashable, Comparable {
 	}
 	
 	/// Performs the actual check. This version checker is adopted by the Sparkle Framework and slightly adapted.
+	///
+	/// Whether build or version numbers are compared is decided from both sides alike, so
+	/// `compare(a, b)` is always the mirror image of `compare(b, a)`:
+	/// - Build numbers are only used if both are present and both look like build numbers
+	///   ("1234", "1.2.40", "3.0b2"; not commit hashes like "a1b2c3" or "4f3a2b"). Otherwise versions are compared.
+	/// - If both builds differ from their own version numbers, builds are compared. This is what
+	///   Sparkle itself does: it compares CFBundleVersion.
+	/// - If neither does, each side only holds a single string, and version numbers are compared.
+	/// - If exactly one build merely repeats its version number (a Sparkle feed without a short version
+	///   string, or an app whose CFBundleVersion equals its short version), that single string may be
+	///   either kind. It is compared with the other side's build, as Sparkle would, unless it is clearly shaped
+	///   like that side's version instead: it has the version's number of components but not the build's.
+	///   Think "2.1.5" against "2.1.4 (300)", or a cask "4.5.0,450" against an app's "4.5.0".
 	private static func compare(_ lhs: Version, _ rhs: Version) -> CheckingResult {
 		var v1 : String?
 		var v2 : String?
 		
-		// Only allow build number checks if build- and version number actually differ
-		let allowBuildNumberCheck = lhs.buildNumber != lhs.versionNumber
-		if allowBuildNumberCheck, let b1 = lhs.buildNumber, let b2 = rhs.buildNumber {
-			v1 = b1
-			v2 = b2
+		if comparesBuildNumbers(lhs, rhs) {
+			v1 = lhs.buildNumber
+			v2 = rhs.buildNumber
 		} else {
 			v1 = lhs.versionNumber
 			v2 = rhs.versionNumber
@@ -123,6 +137,33 @@ struct Version : Hashable, Comparable {
 		return .equal // Think "1.2" vs "1.2"
 	}
 	
+	/// Whether `compare(_:_:)` should compare the build numbers of the given versions. Symmetric in its arguments.
+	private static func comparesBuildNumbers(_ lhs: Version, _ rhs: Version) -> Bool {
+		guard let lhsBuild = lhs.buildNumber, let rhsBuild = rhs.buildNumber,
+			  lhsBuild.looksLikeBuildNumber, rhsBuild.looksLikeBuildNumber else {
+			return false
+		}
+
+		switch (lhsBuild != lhs.versionNumber, rhsBuild != rhs.versionNumber) {
+		case (true, true):
+			return true
+		case (false, false):
+			return false
+		case (false, true):
+			return !reads(lhsBuild, asVersionOf: rhs)
+		case (true, false):
+			return !reads(rhsBuild, asVersionOf: lhs)
+		}
+	}
+
+	/// Whether the given single string is better read as the version's version number than as its build number:
+	/// it has as many components as the version number, but not as many as the build. Ambiguous shapes ("1234"
+	/// against "5 (1230)", "3.0" against "3.0 (3.0b2)") count as builds, as Sparkle compares CFBundleVersion.
+	private static func reads(_ string: String, asVersionOf version: Version) -> Bool {
+		let count = string.componentCount
+		return count == version.versionNumber?.componentCount && count != version.buildNumber?.componentCount
+	}
+
 	/// Compares the atoms of two version components, returning the comparison
 	/// result of the first pair of atoms that differ, or nil if they are equal
 	/// (or one side runs out of atoms before a difference is found).
@@ -259,6 +300,30 @@ fileprivate extension String {
 		}
 		
 		return components
+	}
+
+	/// The number of non-empty components, ignoring build metadata. 3 for "1.2.3", 1 for "1234".
+	var componentCount: Int {
+		strippingBuildMetadata.components().filter { segment in
+			if case .component(let atoms) = segment { !atoms.isEmpty } else { false }
+		}.count
+	}
+
+	/// Whether the string reads as a build number: it starts with a digit and is no commit hash or digest
+	/// ("1234", "1.2.40", "3.0b2", "21A5300"; not "a1b2c3" or "4f3a2b"). Homebrew casks carry such tokens as
+	/// build, and ranking them against a plain number is meaningless.
+	var looksLikeBuildNumber: Bool {
+		let string = strippingBuildMetadata
+		guard case .component(let atoms) = string.components().first, case .number = atoms.first else {
+			return false
+		}
+
+		// Six or more lowercase hex digits including a letter: typical for a hash, unlikely for a build.
+		// Apple-style builds ("21A5300") use uppercase letters.
+		let isHash = string.count >= 6
+			&& string.allSatisfy { $0.isHexDigit && !$0.isUppercase }
+			&& string.contains(where: \.isLetter)
+		return !isHash
 	}
 }
 
