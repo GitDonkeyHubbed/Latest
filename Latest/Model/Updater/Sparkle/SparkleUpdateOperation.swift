@@ -212,11 +212,14 @@ extension SparkleUpdateOperation: SPUUserDriver {
 	}
 	
 	func showUserInitiatedUpdateCheck(cancellation: @escaping () -> Void) {
+		guard !self.isTornDown else { return }
 		self.progressState = .initializing
 	}
 	
 	func showUpdateFound(with appcastItem: SUAppcastItem, state: SPUUserUpdateState, reply: @escaping (SPUUserUpdateChoice) -> Void) {
-		reply(self.isCancelled ? .dismiss : .install)
+		// `isTornDown`, not `isCancelled`: a timed-out operation is torn down without being
+		// cancelled, and must not go on to install after it already reported failure.
+		reply(self.isTornDown ? .dismiss : .install)
 	}
 		
 	func showUpdateNotFoundWithError(_ error: Error, acknowledgement: @escaping () -> Void) {
@@ -348,10 +351,12 @@ extension SparkleUpdateOperation: SPUUserDriver {
 		// Downloading is over. Retire any trailing download publication first, otherwise it lands
 		// after this and leaves the UI showing download progress during extraction.
 		self.invalidateProgressPublishing()
+		guard !self.isTornDown else { return }
 		self.progressState = .extracting(progress: 0)
 	}
 	
 	func showExtractionReceivedProgress(_ progress: Double) {
+		guard !self.isTornDown else { return }
 		self.progressState = .extracting(progress: progress)
 	}
 	
@@ -359,21 +364,24 @@ extension SparkleUpdateOperation: SPUUserDriver {
 		// Check whether app is open
 		self.isAppOpen = self.runningApplication != nil
 		
-		reply(self.isCancelled ? .dismiss : .install)
+		reply(self.isTornDown ? .dismiss : .install)
 	}
 	
 	func showInstallingUpdate(withApplicationTerminated applicationTerminated: Bool, retryTerminatingApplication: @escaping () -> Void) {
+		guard !self.isTornDown else { return }
 		self.progressState = .installing
 
 		// Sparkle waits indefinitely for the updated app to quit, which previously appeared as a
 		// frozen update. Politely ask the app to quit and let Sparkle retry shortly after. The
 		// polite terminate gives the app a chance to show unsaved-changes dialogs; if it still
 		// won't quit, the operation's watchdog eventually fails the update with a clear error.
-		if !applicationTerminated, !self.isCancelled {
+		if !applicationTerminated {
 			self.runningApplication?.terminate()
 
-			DispatchQueue.global().asyncAfter(deadline: .now() + 5) { [weak self] in
-				guard let self = self, !self.isFinished, !self.isCancelled else { return }
+			// Sparkle's driver is main-confined, and `isTornDown` also covers a timeout that
+			// already tore the updater down while `isFinished` is still false.
+			DispatchQueue.main.asyncAfter(deadline: .now() + 5) { [weak self] in
+				guard let self = self, !self.isTornDown else { return }
 				retryTerminatingApplication()
 			}
 		}

@@ -70,17 +70,27 @@ class SparkleUpdateCheckerOperation: StatefulOperation, UpdateCheckerOperation, 
 		DispatchQueue.main.async {
 			// Instantiate a new updater that performs the update
 			let updater = SPUUpdater(hostBundle: bundle, applicationBundle: bundle, userDriver: self, delegate: self)
+			self.updater = updater
 			
 			do {
 				try updater.start()
 			} catch let error {
 				self.finish(with: error)
+				return
 			}
 			
 			updater.checkForUpdates()
-			
-			self.updater = updater
 		}
+	}
+	
+	override func willFinish() {
+		// The updater retains its user driver (this operation). Release it once the check is
+		// done so neither leaks. Deferred, as finishing usually happens inside a Sparkle callback.
+		DispatchQueue.main.async {
+			self.updater = nil
+		}
+		
+		super.willFinish()
 	}
 	
 	fileprivate func finish(with appcastItem: SUAppcastItem) {

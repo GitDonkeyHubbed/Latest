@@ -60,11 +60,13 @@ class UpdateQueue: OperationQueue, @unchecked Sendable {
 				brewOperation.addDependency(previousBrewOperation)
 			}
 
-			super.addOperation(op)
-			
+			// Install the handler before enqueueing: the queue may start the operation (which
+			// reports progress right away) on another thread as soon as it is added.
 			operation.progressHandler = { identifier in
 				self.notifyObservers(for: identifier)
 			}
+			
+			super.addOperation(op)
 		}
 	}
 	
