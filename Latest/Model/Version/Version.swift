@@ -173,7 +173,21 @@ struct Version : Hashable, Comparable {
 				return .newer // Think "1.2.3" vs "1.2.."
 			}
 		}
-		
+
+		// The atoms are equal as far as both go. Mirror the component-level rule for any
+		// extra atoms: a trailing text suffix marks a pre-release, a trailing number a later build.
+		if atomsCount1 != atomsCount2 {
+			let isLonger1 = atomsCount1 > atomsCount2
+			switch (isLonger1 ? atoms1 : atoms2)[min(atomsCount1, atomsCount2)] {
+			case .string:
+				return isLonger1 ? .older : .newer // Think "1.0b3" vs "1.0"
+			case .number(let value) where value != 0:
+				return isLonger1 ? .newer : .older // Think "1.0b3" vs "1.0b"
+			case .number:
+				break
+			}
+		}
+
 		return nil
 	}
 }
@@ -198,11 +212,17 @@ fileprivate extension String {
 		var currentAtoms = [Version.Segment.Atom]()
 		
 		while !scanner.isAtEnd {
-			var number: Int = 0
-			
-			// Try to scan number
-			if scanner.scanInt(&number) {
-				currentAtoms.append(.number(value: number))
+			// Try to scan number. Only plain digit runs count: `scanInt` would also consume a
+			// leading sign, reading the separator in "1.2-5" as the negative number -5.
+			if let digits = scanner.scanCharacters(from: .decimalDigits) {
+				// Map every numeral system ("٣", "३", "１") to ASCII before converting.
+				let asciiDigits = digits.compactMap { $0.wholeNumberValue.map(String.init) }.joined()
+				if asciiDigits.count == digits.count, let number = Int(asciiDigits) {
+					currentAtoms.append(.number(value: number))
+				} else {
+					// Values exceeding Int: keep them as plain text.
+					currentAtoms.append(.string(value: digits))
+				}
 			}
 			
 			// Try to scan separator

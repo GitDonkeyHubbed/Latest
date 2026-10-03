@@ -195,6 +195,26 @@ class VersionTest: XCTestCase {
 		XCTAssertEqual(Set([v1, v2]).count, 1)
 	}
 
+	func testDashIsASeparator() {
+		// A dash separates components; it must not be read as a minus sign.
+		self.older(Version(versionNumber: "2.4.1-1", buildNumber: nil),
+				   Version(versionNumber: "2.4.1-2", buildNumber: nil))
+		self.newer(Version(versionNumber: "1.2-10", buildNumber: nil),
+				   Version(versionNumber: "1.2-9", buildNumber: nil))
+	}
+
+	func testPreReleaseSuffix() {
+		// A trailing text suffix marks a pre-release of the plain version.
+		self.older(Version(versionNumber: "1.0b3", buildNumber: nil),
+				   Version(versionNumber: "1.0", buildNumber: nil))
+		self.newer(Version(versionNumber: "2.1", buildNumber: nil),
+				   Version(versionNumber: "2.1rc1", buildNumber: nil))
+		self.older(Version(versionNumber: "1.0b", buildNumber: nil),
+				   Version(versionNumber: "1.0b3", buildNumber: nil))
+		self.older(Version(versionNumber: "1.0b3", buildNumber: nil),
+				   Version(versionNumber: "1.0b4", buildNumber: nil))
+	}
+
 	func testNumeralSystems() {
 		// Western arabic numerals
 		var v1 = Version(versionNumber: "3.1.5", buildNumber: nil)
@@ -209,6 +229,11 @@ class VersionTest: XCTestCase {
 		// Indian numerals
 		v1 = Version(versionNumber: "३.१.५", buildNumber: "२१७")
 		v2 = Version(versionNumber: "२.१.६", buildNumber: nil)
+		self.newer(v1, v2)
+
+		// Multi-digit numerals compare by value, not as text
+		v1 = Version(versionNumber: "١٠.٠", buildNumber: nil)
+		v2 = Version(versionNumber: "٩.٠", buildNumber: nil)
 		self.newer(v1, v2)
 	}
 

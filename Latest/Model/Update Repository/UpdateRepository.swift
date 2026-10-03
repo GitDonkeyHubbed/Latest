@@ -196,7 +196,8 @@ class UpdateRepository {
 	/// Parses the given repository data and finishes loading.
 	private func parse(_ repositoryData: Data) {
 		do {
-			let entries = try JSONDecoder().decode([Entry].self, from: repositoryData)
+			// Decode entries individually so one malformed cask does not discard the whole list.
+			let entries = try JSONDecoder().decode([FailableDecodable<Entry>].self, from: repositoryData).compactMap(\.base)
 		
 			// Filter out any entries without application name
 			self.entries = entries.filter { !$0.names.isEmpty }
