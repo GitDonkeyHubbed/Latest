@@ -182,11 +182,30 @@ class UpdateOperation: StatefulOperation, @unchecked Sendable {
 	/// Called when no progress occurred for `inactivityTimeout`.
 	///
 	/// The teardown only runs when the timeout actually finishes the operation;
-	/// if a regular finish wins the race, no teardown is performed.
+	/// if a regular finish wins the race, no teardown is performed. A subclass may instead
+	/// take over the timeout via `deferTimeoutFinish()`.
 	final func handleTimeout() {
+		if self.deferTimeoutFinish() {
+			// The subclass now owns the finish. Retire the watchdog so activity reported while
+			// it winds down cannot re-arm the timer and fire the timeout a second time.
+			self.stopWatchdog()
+			return
+		}
+
 		self.finish(with: LatestError.updateTimedOut, beforeFinish: {
 			self.timeoutTeardown()
 		})
+	}
+
+	/// Gives subclasses the chance to postpone the timeout finish until in-flight work has
+	/// actually stopped, e.g. an external process that must exit before the next update may start.
+	///
+	/// Returning true transfers the finish to the subclass: it must stop the work and eventually
+	/// finish with `LatestError.updateTimedOut`, and `timeoutTeardown()` is not called. Returning
+	/// false (the default) finishes immediately. Called on the watchdog queue, so it must never
+	/// block waiting for the work to stop.
+	func deferTimeoutFinish() -> Bool {
+		return false
 	}
 
 	/// Tears down in-flight work after the operation timed out.

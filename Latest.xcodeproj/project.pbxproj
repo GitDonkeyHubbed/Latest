@@ -78,6 +78,7 @@
 		50C59D692D1F182B005BC36B /* SettingsTabViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50C59D682D1F182B005BC36B /* SettingsTabViewController.swift */; };
 		50C59D6D2D1F54BF005BC36B /* GeneralSettingsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50C59D6C2D1F54B5005BC36B /* GeneralSettingsViewController.swift */; };
 		50C81D741FBADC9100324C2E /* VersionTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50C81D731FBADC9100324C2E /* VersionTest.swift */; };
+		5AFE0B0F2E9F00A100C0FFEE /* HomebrewUpdateOperationTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5AFE0B0E2E9F00A100C0FFEE /* HomebrewUpdateOperationTest.swift */; };
 		50C857402B25CF7500F5BF0B /* UpdateRepositoryCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50C8573F2B25CF7500F5BF0B /* UpdateRepositoryCache.swift */; };
 		50C8C85C208A0EE9004FF5D5 /* dsa_pub.pem in Resources */ = {isa = PBXBuildFile; fileRef = 50C8C85B208A0EE9004FF5D5 /* dsa_pub.pem */; };
 		50C9F0F5234637BD00FD1802 /* UpdateCheckerOperation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50C9F0F4234637BD00FD1802 /* UpdateCheckerOperation.swift */; };
@@ -316,6 +317,7 @@
 		50C81D691FBADC5900324C2E /* Latest Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Latest Tests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		50C81D6D1FBADC5900324C2E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		50C81D731FBADC9100324C2E /* VersionTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VersionTest.swift; sourceTree = "<group>"; };
+		5AFE0B0E2E9F00A100C0FFEE /* HomebrewUpdateOperationTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomebrewUpdateOperationTest.swift; sourceTree = "<group>"; };
 		50C857312B23CD5200F5BF0B /* ro */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ro; path = ro.lproj/Main.strings; sourceTree = "<group>"; };
 		50C857322B23CD7D00F5BF0B /* ro */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ro; path = ro.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		50C857332B23CD8100F5BF0B /* ro */ = {isa = PBXFileReference; lastKnownFileType = text.plist.stringsdict; name = ro; path = ro.lproj/Localizable.stringsdict; sourceTree = "<group>"; };
@@ -756,6 +758,7 @@
 			isa = PBXGroup;
 			children = (
 				50C81D6D1FBADC5900324C2E /* Info.plist */,
+				5AFE0B0E2E9F00A100C0FFEE /* HomebrewUpdateOperationTest.swift */,
 				50FEB87C2B1BE630006FB75D /* OSVersionTest.swift */,
 				50C81D731FBADC9100324C2E /* VersionTest.swift */,
 				50E4EB082B17DFCE00A70A7D /* VersionParserTest.swift */,
@@ -1160,6 +1163,7 @@
 				50FEB87D2B1BE630006FB75D /* OSVersionTest.swift in Sources */,
 				50FEB87F2B1BE67F006FB75D /* VersionSanitizationTest.swift in Sources */,
 				50E4EB092B17DFCE00A70A7D /* VersionParserTest.swift in Sources */,
+				5AFE0B0F2E9F00A100C0FFEE /* HomebrewUpdateOperationTest.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
