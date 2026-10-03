@@ -56,7 +56,7 @@ jobs:
       TESTINGBOT_SECRET: ${{ secrets.TESTINGBOT_SECRET }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           persist-credentials: false
 
@@ -68,7 +68,7 @@ jobs:
       - name: TestingBot Maestro
         id: maestro
         if: env.TESTINGBOT_KEY != '' && env.TESTINGBOT_SECRET != ''
-        uses: testingbot/maestro-action@v1.0.0
+        uses: testingbot/maestro-action@v1.1.0
         with:
           api-key: ${{ secrets.TESTINGBOT_KEY }}
           api-secret: ${{ secrets.TESTINGBOT_SECRET }}
@@ -82,7 +82,7 @@ jobs:
 
       - name: Upload Maestro reports and failure artifacts
         if: always() && steps.maestro.outcome != 'skipped'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: testingbot-maestro-results
           path: |
