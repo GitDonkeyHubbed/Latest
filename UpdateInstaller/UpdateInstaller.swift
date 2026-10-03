@@ -65,7 +65,10 @@ class UpdateInstaller: NSObject, UpdateInstallerProtocol {
 			// symlinked ancestor cannot redirect this root write outside the app bundle.
 			try Self.secureWriteReceipt(receiptData, to: validatedReceiptURL)
 		} catch {
-			reply(error)
+			// A Swift `LocalizedError` bridges to an NSError whose description is provided lazily
+			// in-process only; it is lost when the error is encoded over XPC. Send the message
+			// eagerly so the app can show why the request was rejected.
+			reply(NSError(domain: "LatestInstallerErrorDomain", code: 0, userInfo: [NSLocalizedDescriptionKey: error.localizedDescription]))
 			return
 		}
 
@@ -140,9 +143,9 @@ class UpdateInstaller: NSObject, UpdateInstallerProtocol {
 			let output = try FileHandle(forWritingTo: packageURL)
 			defer { try? output.close() }
 			try? fileHandle.seek(toOffset: 0)
-			while true {
-				let chunk = fileHandle.readData(ofLength: 4 * 1024 * 1024)
-				if chunk.isEmpty { break }
+			// `read(upToCount:)` throws on I/O errors; the legacy `readData(ofLength:)` raises an
+			// Objective-C exception instead, which would abort the daemon.
+			while let chunk = try fileHandle.read(upToCount: 4 * 1024 * 1024), !chunk.isEmpty {
 				try output.write(contentsOf: chunk)
 			}
 		} catch {
@@ -196,7 +199,15 @@ class UpdateInstaller: NSObject, UpdateInstallerProtocol {
 		}
 
 		// `parentFD` is now the real `_MASReceipt` directory with no symlinked ancestor.
-		let fileFD = fileName.withCString { openat(parentFD, $0, O_WRONLY | O_CREAT | O_TRUNC | O_NOFOLLOW | O_CLOEXEC, 0o755) }
+		// O_NOFOLLOW does not stop hard links: truncating an existing entry in place could
+		// overwrite (and later re-own and chmod) any root file it is linked to. Remove whatever
+		// is there and create a fresh file exclusively instead.
+		let unlinked = fileName.withCString { unlinkat(parentFD, $0, 0) }
+		guard unlinked == 0 || errno == ENOENT else {
+			close(parentFD)
+			throw UpdateInstallerError.invalidReceiptPath
+		}
+		let fileFD = fileName.withCString { openat(parentFD, $0, O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW | O_CLOEXEC, 0o755) }
 		close(parentFD)
 		guard fileFD >= 0 else { throw UpdateInstallerError.invalidReceiptPath }
 		defer { close(fileFD) }
