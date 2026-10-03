@@ -53,7 +53,11 @@ class AppDirectory {
 				close(fileDescriptor)
 			}
 		}
-		source.setEventHandler(handler: collectBundles)
+		// Capture weakly: self owns the source, so a strong capture would keep every directory
+		// (and its file descriptor and watcher) alive forever.
+		source.setEventHandler { [weak self] in
+			self?.collectBundles()
+		}
 		
 		return source
 	}()

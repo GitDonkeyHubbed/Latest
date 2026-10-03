@@ -16,6 +16,7 @@ class WebContentLoader: NSObject {
 	/// The update handler may be called multiple times, if contents change. The caller is responsible for determining whether updates are still relevant.
 	func load(from url: URL, contentUpdateHandler: @escaping (Result<String, Error>) -> Void) {
 		currentUpdateHandler = contentUpdateHandler
+		currentNavigationFinished = false
 		currentNavigation = webView.load(URLRequest(url: url))
 	}
 
@@ -59,17 +60,26 @@ class WebContentLoader: NSObject {
 	/// The current update handler.
 	private var currentUpdateHandler: ((Result<String, Error>) -> Void)?
 	
+	/// Whether the current navigation finished loading.
+	///
+	/// Until it did, the web view may still show the previous page, whose content updates must
+	/// not be reported to the new handler.
+	private var currentNavigationFinished = false
+	
 	
 	// MARK: - Utilities
 	
 	/// Forwards the current page contents to the caller of the load method.
 	fileprivate func notifyContentUpdate() {
+		// Capture the handler now: a load for another URL may start before the script returns,
+		// and its handler must not receive this page's contents.
+		let updateHandler = currentUpdateHandler
 		webView.evaluateJavaScript("document.documentElement.outerHTML.toString()") { html, error in
 			DispatchQueue.main.async {
 				if let html = html as? String, !html.isEmpty {
-					self.currentUpdateHandler?(.success(html))
+					updateHandler?(.success(html))
 				} else if let error = error {
-					self.currentUpdateHandler?(.failure(error))
+					updateHandler?(.failure(error))
 				}
 			}
 		}
@@ -81,6 +91,7 @@ extension WebContentLoader: WKNavigationDelegate {
 	
 	func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
 		guard navigation == currentNavigation else { return }
+		currentNavigationFinished = true
 		notifyContentUpdate()
 	}
 	
@@ -103,7 +114,7 @@ extension WebContentLoader: WKNavigationDelegate {
 extension WebContentLoader: WKScriptMessageHandler {
 	
 	func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
-		guard message.name == "updateHandler" else { return }
+		guard message.name == "updateHandler", currentNavigationFinished else { return }
 		notifyContentUpdate()
 	}
 	

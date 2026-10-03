@@ -17,10 +17,17 @@ class AppLibrary {
 	
 	/// A list of all application bundles that are available locally.
 	var bundles: [App.Bundle] {
-		directories.flatMap { $0.value.bundles}
+		directoriesLock.withCriticalScope { directories }.flatMap { $0.value.bundles }
 	}
 		
+	/// The observed directories. Guarded by `directoriesLock`, as it is read from several queues.
 	private var directories = [URL: AppDirectory]()
+	
+	/// Protects `directories`.
+	private let directoriesLock = NSLock()
+	
+	/// Serializes directory setup, so concurrent rescans cannot interleave.
+	private let setupQueue = DispatchQueue(label: "AppLibrarySetupQueue")
 	
 	/// Initializes the library with the given handler for updates.
 	init(handler: @escaping UpdateHandler) {
@@ -46,17 +53,18 @@ class AppLibrary {
 	
 	/// Starts the update checking process
 	func startQuery() {
-		DispatchQueue.global().async {
+		setupQueue.async {
 			self.setupDirectoryObservers()
 		}
 	}
 		
 	private func setupDirectoryObservers() {
 		// Use a dispatch group for the initial setup to get contents for all directories before gathering apps
-		let dispatchGroup: DispatchGroup? = self.directories.isEmpty ? DispatchGroup() : nil
+		let existingDirectories = directoriesLock.withCriticalScope { self.directories }
+		let dispatchGroup: DispatchGroup? = existingDirectories.isEmpty ? DispatchGroup() : nil
 
 		// Setup directories
-		directories = Dictionary(uniqueKeysWithValues: directoryStore.URLs.compactMap { url in
+		let directories = Dictionary(uniqueKeysWithValues: directoryStore.URLs.compactMap { url -> (URL, AppDirectory)? in
 			// Skip unreachable directories
 			guard directoryStore.isReachable(url) else { return nil }
 
@@ -70,7 +78,7 @@ class AppLibrary {
 			var initialContentsListed = false
 
 			// Reuse existing directory observations if possible
-			return (url, directories[url] ?? AppDirectory(url: url) {
+			return (url, existingDirectories[url] ?? AppDirectory(url: url) {
 				let isInitialContents = initialContentsLock.withCriticalScope { () -> Bool in
 					guard !initialContentsListed else { return false }
 					initialContentsListed = true
@@ -86,9 +94,16 @@ class AppLibrary {
 				}
 			})
 		})
+		directoriesLock.withCriticalScope { self.directories = directories }
 
-		dispatchGroup?.notify(queue: .global()) {
-			// Call update immediately. Using the scheduler delays the update.
+		if let dispatchGroup {
+			dispatchGroup.notify(queue: .global()) {
+				// Call update immediately. Using the scheduler delays the update.
+				self.performUpdate()
+			}
+		} else {
+			// A rescan (e.g. locations changed in settings). Removed directories trigger no
+			// callback of their own, so publish the new set of bundles right away.
 			self.performUpdate()
 		}
 	}

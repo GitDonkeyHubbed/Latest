@@ -78,15 +78,11 @@ class UpdateTableViewController: NSViewController, NSMenuItemValidation, NSTable
 		
 		AppListSettings.shared.add(self, handler: self.updateSnapshot)
         
+		// Snapshots are built on main, where observers are called: building them on a concurrent
+		// queue let a late result overwrite a newer one (e.g. drop a just-applied search filter).
 		UpdateCheckCoordinator.shared.appProvider.addObserver(self) { newValue in
-			let filterQuery = self.snapshot.filterQuery
-			DispatchQueue.global(qos: .userInitiated).async {
-				let snapshot = AppListSnapshot(withApps: newValue, filterQuery: filterQuery)
-				DispatchQueue.main.async {
-					self.scheduleTableViewUpdate(with: snapshot, animated: true)
-					self.updateTitleAndBatch()
-				}
-			}
+			self.scheduleTableViewUpdate(with: AppListSnapshot(withApps: newValue, filterQuery: self.snapshot.filterQuery), animated: true)
+			self.updateTitleAndBatch()
 		}
 		
 		self.updatesLabel.isHidden = true
@@ -120,14 +116,8 @@ class UpdateTableViewController: NSViewController, NSMenuItemValidation, NSTable
     @IBOutlet weak var tableView: NSTableView!
     
 	func updateSnapshot() {
-		let currentSnapshot = self.snapshot
-		DispatchQueue.global(qos: .userInitiated).async {
-			let updated = currentSnapshot.updated()
-			DispatchQueue.main.async {
-				self.scheduleTableViewUpdate(with: updated, animated: true)
-				self.updateTitleAndBatch()
-			}
-		}
+		self.scheduleTableViewUpdate(with: self.snapshot.updated(), animated: true)
+		self.updateTitleAndBatch()
 	}
 	
 	
@@ -165,6 +155,7 @@ class UpdateTableViewController: NSViewController, NSMenuItemValidation, NSTable
 		self.newSnapshot = nil
 		self.snapshot = snapshot
 		self.tableView.reloadData()
+		self.scrubber?.reloadData()
 		
 		// Update selected app
 		self.ensureSelection()
@@ -181,6 +172,9 @@ class UpdateTableViewController: NSViewController, NSMenuItemValidation, NSTable
 		self.snapshot = snapshot
 		self.newSnapshot = nil
 		self.updateTableView(with: oldSnapshot, with: self.snapshot)
+		
+		// The Touch Bar scrubber reads the same snapshot; keep its item count in sync.
+		self.scrubber?.reloadData()
 		
 		// Update selected app
 		self.ensureSelection()
@@ -454,14 +448,18 @@ extension UpdateTableViewController {
         }
 		
 		// Only update image if needed, as this might result in flicker
-		if cell.app != app {
-			IconCache.shared.icon(for: app) { (image) in
-				cell.imageView?.image = image
-			}
-		}
+		let needsIcon = cell.app != app
 
 		cell.app = app
 		cell.filterQuery = self.snapshot.filterQuery
+
+		if needsIcon {
+			IconCache.shared.icon(for: app) { (image) in
+				// Uncached icons arrive asynchronously; the cell may show another app by then.
+				guard cell.app?.identifier == app.identifier else { return }
+				cell.imageView?.image = image
+			}
+		}
 
         return cell
 	}
