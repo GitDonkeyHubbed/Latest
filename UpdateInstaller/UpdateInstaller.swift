@@ -17,7 +17,7 @@ enum UpdateInstallerError: LocalizedError {
 	var errorDescription: String? {
 		switch self {
 		case .packageSignatureInvalid:
-			return "The update package is not signed by a certificate trusted by macOS and was rejected."
+			return "The update package is not signed by Apple's Mac App Store package signing identity and was rejected."
 		case .invalidReceiptPath:
 			return "The receipt destination is not a valid Mac App Store receipt path and was rejected."
 		case .packageStagingFailed:
@@ -78,15 +78,108 @@ class UpdateInstaller: NSObject, UpdateInstallerProtocol {
 
 	// MARK: - Server-side validation
 
-	/// Verifies that the package at `path` carries a signature that validates against a
-	/// certificate trusted by macOS. `pkgutil --check-signature` exits non-zero for unsigned
-	/// or tampered packages. The path is passed as an argv element (no shell), so a crafted
-	/// filename cannot inject arguments.
+	/// Verifies that the package at `path` is signed by Apple itself, as App Store downloads are.
+	/// `pkgutil --check-signature` exits non-zero for unsigned or tampered packages, but it exits
+	/// zero for any Developer ID–signed package too, so the reported chain must additionally be
+	/// Apple's own. The path is passed as an argv element (no shell), so a crafted filename cannot
+	/// inject arguments, and it is our fixed staging name, so it cannot inject chain-like output.
 	private func verifyPackageSignature(atPath path: String) throws {
-		let (signed, output) = try performCommand("/usr/sbin/pkgutil", arguments: ["--check-signature", path])
-		guard signed, !output.localizedCaseInsensitiveContains("no signature") else {
+		// Unlocalized labels: the parser below matches pkgutil's English output.
+		let (signed, output) = try performCommand("/usr/sbin/pkgutil", arguments: ["--check-signature", path], environment: ["LANG": "C", "LC_ALL": "C"])
+		guard signed, !output.localizedCaseInsensitiveContains("no signature"), Self.isAppleOwnedSignature(pkgutilOutput: output) else {
 			throw UpdateInstallerError.packageSignatureInvalid
 		}
+	}
+
+	// MARK: - Apple package signature pinning
+
+	/// SHA-256 of "Apple Root CA", as listed by
+	/// `security find-certificate -c "Apple Root CA" -Z /System/Library/Keychains/SystemRootCertificates.keychain`.
+	private static let appleRootCAFingerprint = "B0B1730ECBC7FF4505142C49F1295E6EDA6BCAED7E2C68C5BE91B5A11001F024"
+
+	/// Leaf identities Apple signs App Store content with. Apple's CAs issue every third-party
+	/// certificate with a typed, team-suffixed name ("Developer ID Installer: Name (TEAMID)",
+	/// "3rd Party Mac Developer Installer: …"), so no one but Apple can hold a leaf with one of
+	/// these exact names under Apple Root CA.
+	/// - "Apple Mac OS Installer Package Signing" signs the packages appstoreagent downloads
+	///   (pkgutil status "signed by Apple for the App Store").
+	/// - "Apple Mac OS Application Signing" is the identity Apple re-signs App Store app bundles
+	///   with; accepted in case a package is signed by it as well.
+	private static let appleSigningIdentities: Set<String> = [
+		"Apple Mac OS Installer Package Signing",
+		"Apple Mac OS Application Signing"
+	]
+
+	/// A certificate as listed in the "Certificate Chain:" section of `pkgutil --check-signature`.
+	private struct ListedCertificate {
+		let name: String
+		let sha256Fingerprint: String
+	}
+
+	/// Whether `pkgutil --check-signature` output (run with `LANG=C`) reports a chain whose leaf is
+	/// one of Apple's own signing identities and whose anchor is Apple Root CA. Fails closed:
+	/// anything missing, malformed or out of order is rejected.
+	static func isAppleOwnedSignature(pkgutilOutput output: String) -> Bool {
+		guard let chain = certificateChain(fromPkgutilOutput: output), chain.count >= 2,
+			  let leaf = chain.first, let anchor = chain.last else {
+			return false
+		}
+		return appleSigningIdentities.contains(leaf.name) && anchor.sha256Fingerprint == appleRootCAFingerprint
+	}
+
+	/// Parses the numbered entries following "Certificate Chain:". Every entry must be numbered
+	/// in sequence from 1 and carry a complete SHA-256 fingerprint; otherwise returns `nil`.
+	private static func certificateChain(fromPkgutilOutput output: String) -> [ListedCertificate]? {
+		let lines = output.split(whereSeparator: \.isNewline).map { $0.trimmingCharacters(in: .whitespaces) }
+		guard let header = lines.firstIndex(where: { $0.caseInsensitiveCompare("Certificate Chain:") == .orderedSame }) else {
+			return nil
+		}
+
+		var entries: [(name: String, lines: [String])] = []
+		for line in lines[(header + 1)...] {
+			if let entry = numberedEntry(line) {
+				guard entry.position == entries.count + 1 else { return nil }
+				entries.append((entry.name, []))
+			} else if !entries.isEmpty {
+				entries[entries.count - 1].lines.append(line)
+			} else if !line.isEmpty {
+				return nil
+			}
+		}
+
+		let chain = entries.compactMap { entry in
+			sha256Fingerprint(in: entry.lines).map { ListedCertificate(name: entry.name, sha256Fingerprint: $0) }
+		}
+		guard !chain.isEmpty, chain.count == entries.count else { return nil }
+		return chain
+	}
+
+	/// Splits an entry header such as "1. Apple Root CA" into its position and certificate name.
+	private static func numberedEntry(_ line: String) -> (position: Int, name: String)? {
+		guard let dot = line.firstIndex(of: "."), line[..<dot].allSatisfy({ $0.isASCII && $0.isNumber }),
+			  let position = Int(line[..<dot]), position > 0 else {
+			return nil
+		}
+		let name = line[line.index(after: dot)...].trimmingCharacters(in: .whitespaces)
+		return name.isEmpty ? nil : (position, name)
+	}
+
+	/// Reads the hex bytes after "SHA256 Fingerprint:", which pkgutil wraps across lines, and
+	/// returns them as 64 uppercase hex digits without separators.
+	private static func sha256Fingerprint(in lines: [String]) -> String? {
+		let label = "sha256 fingerprint:"
+		guard let start = lines.firstIndex(where: { $0.lowercased().hasPrefix(label) }) else { return nil }
+
+		let isHexDigit: (Character) -> Bool = { $0.isASCII && $0.isHexDigit }
+		var digits = String(lines[start].dropFirst(label.count))
+		for line in lines[(start + 1)...] {
+			guard !line.isEmpty, line.allSatisfy({ isHexDigit($0) || $0 == " " }) else { break }
+			digits += line
+		}
+
+		let fingerprint = digits.filter { !$0.isWhitespace }.uppercased()
+		guard fingerprint.count == 64, fingerprint.allSatisfy(isHexDigit) else { return nil }
+		return fingerprint
 	}
 
 	/// Validates that `receiptURL` is a legitimate Mac App Store receipt destination:
@@ -229,10 +322,13 @@ class UpdateInstaller: NSObject, UpdateInstallerProtocol {
 		_ = fchmod(fileFD, 0o755)
 	}
 	
-	private func performCommand(_ executablePath: String, arguments: [String]) throws -> (success: Bool, output: String) {
+	private func performCommand(_ executablePath: String, arguments: [String], environment: [String: String] = [:]) throws -> (success: Bool, output: String) {
 		let process = Process()
 		process.executableURL = URL(fileURLWithPath: executablePath)
 		process.arguments = arguments
+		if !environment.isEmpty {
+			process.environment = ProcessInfo.processInfo.environment.merging(environment) { _, override in override }
+		}
 		
 		let pipe = Pipe()
 		process.standardOutput = pipe
