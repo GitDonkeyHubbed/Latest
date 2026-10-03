@@ -123,7 +123,7 @@ class UpdateOperation: StatefulOperation, @unchecked Sendable {
 
 	/// Starts observing the operation for inactivity.
 	private func startWatchdog() {
-		self.watchdogQueue.async {
+		self.watchdogQueue.async { [self] in
 			let timer = DispatchSource.makeTimerSource(queue: self.watchdogQueue)
 			timer.setEventHandler { [weak self] in
 				guard let self = self, !self.isFinished, !self.isCancelled else { return }

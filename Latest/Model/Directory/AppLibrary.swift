@@ -31,7 +31,7 @@ class AppLibrary {
 	private var updateWorkItem: DispatchWorkItem?
 
 	private func scheduleUpdate() {
-		schedulerQueue.async {
+		schedulerQueue.async { [self] in
 			self.updateWorkItem?.cancel()
 			let workItem = DispatchWorkItem { [weak self] in
 				self?.performUpdate()

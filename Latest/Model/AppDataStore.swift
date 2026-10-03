@@ -49,7 +49,7 @@ class AppDataStore: AppProviding {
 
 	/// Schedules an filter update and notifies observers of the updated app list
 	private func scheduleFilterUpdate() {
-		schedulerQueue.async {
+		schedulerQueue.async { [self] in
 			guard !self.isNotifyScheduled else { return }
 			self.isNotifyScheduled = true
 			self.schedulerQueue.asyncAfter(deadline: .now() + 0.6) { [weak self] in

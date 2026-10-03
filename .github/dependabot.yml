@@ -1,6 +1,6 @@
 version: 2
 updates:
-  # Swift Package Manager (Sparkle 2.9.4 is the only package dependency).
+  # Swift Package Manager (Sparkle is the only package dependency).
   # NOTE: Dependabot's swift ecosystem follows Package.swift manifests. This
   # project declares Sparkle inside Latest.xcodeproj (XCRemoteSwiftPackageReference,
   # exact-version pin), which Dependabot cannot rewrite — expect Sparkle bumps to
