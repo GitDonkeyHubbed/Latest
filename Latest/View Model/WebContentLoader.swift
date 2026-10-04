@@ -16,7 +16,7 @@ class WebContentLoader: NSObject {
 	/// The update handler may be called multiple times, if contents change. The caller is responsible for determining whether updates are still relevant.
 	func load(from url: URL, contentUpdateHandler: @escaping (Result<String, Error>) -> Void) {
 		currentUpdateHandler = contentUpdateHandler
-		currentNavigationFinished = false
+		newContentCommitted = false
 		currentNavigation = webView.load(URLRequest(url: url))
 	}
 
@@ -59,11 +59,12 @@ class WebContentLoader: NSObject {
 	/// The current update handler.
 	private var currentUpdateHandler: ((Result<String, Error>) -> Void)?
 
-	/// Whether the current navigation finished loading.
+	/// Whether a navigation committed since the last `load(from:)`.
 	///
-	/// Until it did, the web view may still show the previous page, whose content updates must
-	/// not be reported to the new handler.
-	private var currentNavigationFinished = false
+	/// Until then, the web view still shows the previous page, whose content updates must not be
+	/// reported to the new handler. Any navigation counts, not just the requested one: pages that
+	/// redirect via script never finish the original navigation.
+	private var newContentCommitted = false
 
 	// MARK: - Utilities
 
@@ -87,9 +88,12 @@ class WebContentLoader: NSObject {
 
 extension WebContentLoader: WKNavigationDelegate {
 
+	func webView(_ webView: WKWebView, didCommit navigation: WKNavigation!) {
+		newContentCommitted = true
+	}
+
 	func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
 		guard navigation == currentNavigation else { return }
-		currentNavigationFinished = true
 		notifyContentUpdate()
 	}
 
@@ -112,7 +116,7 @@ extension WebContentLoader: WKNavigationDelegate {
 extension WebContentLoader: WKScriptMessageHandler {
 
 	func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
-		guard message.name == "updateHandler", currentNavigationFinished else { return }
+		guard message.name == "updateHandler", newContentCommitted else { return }
 		notifyContentUpdate()
 	}
 
