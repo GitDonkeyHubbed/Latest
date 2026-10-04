@@ -35,7 +35,7 @@ class UpdateGroupCellView: NSTableCellView {
 			// Format section title
 			let count = Self.numberFormatter.string(from: section.numberOfApps as NSNumber) ?? "0"
 			// The comment must stay a single string literal so genstrings can extract it for translators.
-			let format = NSLocalizedString("SectionTitle", comment: "The title of a section divider in the app list. The first placeholder is the name of the section. The value in paranthesis describes how many apps are in that section, number of apps is inserted in the second placeholder. Use the HTML underline tag <u> to mark the deemphasized part of the text, which should be the count. Example: 'Installed Apps (42)'")
+			let format = NSLocalizedString("SectionTitle", comment: "The title of a section divider in the app list. The first placeholder is the name of the section. The value in parenthesis describes how many apps are in that section, number of apps is inserted in the second placeholder. Use the HTML underline tag <u> to mark the deemphasized part of the text, which should be the count. Example: 'Installed Apps (42)'")
 			let sectionText = String(format: format, section.title, count)
 
 			// Convert to text

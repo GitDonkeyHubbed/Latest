@@ -37,6 +37,24 @@ class AppUpdateAvailabilityTest: XCTestCase {
 		XCTAssertEqual(store.updatableApps.count, 0, "Replacing the on-disk bundle with the advertised version must clear the update list.")
 	}
 
+	func testOnlySuccessfulInstallsTriggerRescan() {
+		let identifier = URL(fileURLWithPath: "/Applications/Linger.app")
+
+		let succeeded = UpdateOperation(bundleIdentifier: "com.test.linger", appIdentifier: identifier)
+		succeeded.finish()
+		XCTAssertTrue(UpdateQueue.didInstallUpdate(succeeded))
+
+		// A rescan would rebuild the app's row and replace the failure with the plain update button.
+		let failed = UpdateOperation(bundleIdentifier: "com.test.linger", appIdentifier: identifier)
+		failed.finish(with: LatestError.updateTimedOut)
+		XCTAssertFalse(UpdateQueue.didInstallUpdate(failed))
+
+		let cancelled = UpdateOperation(bundleIdentifier: "com.test.linger", appIdentifier: identifier)
+		cancelled.cancel()
+		cancelled.finish()
+		XCTAssertFalse(UpdateQueue.didInstallUpdate(cancelled))
+	}
+
 	func testCollectBundlesSeesUpdatedInfoPlist() throws {
 		let fileManager = FileManager.default
 		let root = fileManager.temporaryDirectory.appendingPathComponent("LatestBundleCollector-\(UUID().uuidString)", isDirectory: true)

@@ -21,8 +21,16 @@ class UpdateQueue: OperationQueue, @unchecked Sendable {
 	/// The shared instance of the queue.
 	static let shared = UpdateQueue()
 
-	/// Invoked after an update operation finishes (success, failure, or cancel).
+	/// Invoked after an update operation installed its update successfully.
 	var onOperationFinished: ((App.Bundle.Identifier) -> Void)?
+
+	/// Whether the given finished operation installed its update, so the installed apps should be rescanned.
+	///
+	/// Failed and cancelled operations leave the app as it was. Rescanning after them would rebuild the
+	/// app's row, whose update button then re-reads the (now `.none`) queue state and hides the error.
+	static func didInstallUpdate(_ operation: UpdateOperation) -> Bool {
+		return !operation.isCancelled && operation.error == nil
+	}
 
 	// MARK: - Public Methods
 
@@ -65,6 +73,7 @@ class UpdateQueue: OperationQueue, @unchecked Sendable {
 			let existingCompletion = operation.completionBlock
 			operation.completionBlock = { [weak self] in
 				existingCompletion?()
+				guard Self.didInstallUpdate(operation) else { return }
 				self?.onOperationFinished?(operation.appIdentifier)
 			}
 
