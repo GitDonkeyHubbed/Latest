@@ -263,7 +263,8 @@ class UpdateInstaller: NSObject, UpdateInstallerProtocol {
 	/// refusing to traverse any symlink (`O_NOFOLLOW` per level). Only the trailing bundle
 	/// directories (`Contents`, `_MASReceipt`) are created if missing, mirroring the previous
 	/// intermediate-directory behavior. A symlink planted at any component fails the open and
-	/// the write is rejected rather than redirected.
+	/// the write is rejected rather than redirected. The receipt is replaced atomically, so a
+	/// failed write leaves any existing receipt in place.
 	private static func secureWriteReceipt(_ data: Data, to receiptURL: URL) throws {
 		let components = receiptURL.pathComponents
 		guard components.first == "/", components.count >= 3 else {
@@ -274,26 +275,44 @@ class UpdateInstaller: NSObject, UpdateInstallerProtocol {
 		let fileName = components[components.count - 1]
 
 		let parentFD = try openReceiptDirectory(directoryComponents)
+		defer { close(parentFD) }
 
 		// `parentFD` is now the real `_MASReceipt` directory with no symlinked ancestor.
-		// O_NOFOLLOW does not stop hard links: truncating an existing entry in place could
-		// overwrite (and later re-own and chmod) any root file it is linked to. Remove whatever
-		// is there and create a fresh file exclusively instead.
-		let unlinked = fileName.withCString { unlinkat(parentFD, $0, 0) }
-		guard unlinked == 0 || errno == ENOENT else {
-			close(parentFD)
+		// O_NOFOLLOW does not stop hard links: writing to an existing entry in place could overwrite
+		// (and later re-own and chmod) any root file it is linked to. Write an exclusively created
+		// temporary file instead and rename it over the receipt, which replaces the directory entry
+		// itself and keeps the old receipt intact until its replacement is complete.
+		let temporaryName = ".\(fileName).\(UUID().uuidString)"
+		let fileFD = temporaryName.withCString { openat(parentFD, $0, O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW | O_CLOEXEC, 0o755) }
+		guard fileFD >= 0 else { throw UpdateInstallerError.invalidReceiptPath }
+
+		do {
+			defer { close(fileFD) }
+			try writeAll(data, to: fileFD)
+			_ = fchown(fileFD, 0, 0)
+			_ = fchmod(fileFD, 0o755)
+			guard fsync(fileFD) == 0 else { throw UpdateInstallerError.invalidReceiptPath }
+		} catch {
+			_ = temporaryName.withCString { unlinkat(parentFD, $0, 0) }
+			throw error
+		}
+
+		let renamed = temporaryName.withCString { temporary in
+			fileName.withCString { renameat(parentFD, temporary, parentFD, $0) }
+		}
+		guard renamed == 0 else {
+			_ = temporaryName.withCString { unlinkat(parentFD, $0, 0) }
 			throw UpdateInstallerError.invalidReceiptPath
 		}
-		let fileFD = fileName.withCString { openat(parentFD, $0, O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW | O_CLOEXEC, 0o755) }
-		close(parentFD)
-		guard fileFD >= 0 else { throw UpdateInstallerError.invalidReceiptPath }
-		defer { close(fileFD) }
+	}
 
+	/// Writes all of `data` to `fileDescriptor`, retrying interrupted and partial writes.
+	private static func writeAll(_ data: Data, to fileDescriptor: Int32) throws {
 		try data.withUnsafeBytes { (raw: UnsafeRawBufferPointer) in
 			guard let base = raw.baseAddress else { return }
 			var offset = 0
 			while offset < raw.count {
-				let written = write(fileFD, base.advanced(by: offset), raw.count - offset)
+				let written = write(fileDescriptor, base.advanced(by: offset), raw.count - offset)
 				if written < 0 {
 					if errno == EINTR { continue }
 					throw UpdateInstallerError.invalidReceiptPath
@@ -301,9 +320,6 @@ class UpdateInstaller: NSObject, UpdateInstallerProtocol {
 				offset += written
 			}
 		}
-
-		_ = fchown(fileFD, 0, 0)
-		_ = fchmod(fileFD, 0o755)
 	}
 
 	/// Descends from `/` through `directoryComponents` one component at a time with
