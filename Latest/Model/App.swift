@@ -142,8 +142,12 @@ extension App {
 	}
 
 	/// Whether an update is available for the given app.
+	///
+	/// Uses the current on-disk bundle, not the bundle captured when the
+	/// update was first fetched. Otherwise a successful install that only
+	/// replaces `bundle` (via `with(bundle:)`) would keep showing as outdated.
 	var updateAvailable: Bool {
-		return self.update?.updateAvailable ?? false
+		return self.update?.isAvailable(for: self.bundle) ?? false
 	}
 
 	/// Whether the app is currently being updated.
@@ -248,7 +252,7 @@ extension App {
 
 			// If the shortVersion string is identical, but the bundle version is different
 			// Show the Bundle version in brackets like: "1.3 (21)"
-			if update?.updateAvailable ?? false, currentNumber == nv, let currentBuild = currentVersion.buildNumber, let nv = newVersion?.buildNumber {
+			if self.updateAvailable, currentNumber == nv, let currentBuild = currentVersion.buildNumber, let nv = newVersion?.buildNumber {
 				versionInformation?.rawCurrent += " (\(currentBuild))"
 				versionInformation?.rawNew! += " (\(nv))"
 			}

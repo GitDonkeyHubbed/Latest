@@ -21,6 +21,9 @@ class UpdateQueue: OperationQueue, @unchecked Sendable {
 	/// The shared instance of the queue.
 	static let shared = UpdateQueue()
 
+	/// Invoked after an update operation finishes (success, failure, or cancel).
+	var onOperationFinished: ((App.Bundle.Identifier) -> Void)?
+
 	// MARK: - Public Methods
 
 	/// The handler forwarding the current progress state.
@@ -59,6 +62,12 @@ class UpdateQueue: OperationQueue, @unchecked Sendable {
 				brewOperation.addDependency(previousBrewOperation)
 			}
 
+			let existingCompletion = operation.completionBlock
+			operation.completionBlock = { [weak self] in
+				existingCompletion?()
+				self?.onOperationFinished?(operation.appIdentifier)
+			}
+
 			// Install the handler before enqueueing: the queue may start the operation (which
 			// reports progress right away) on another thread as soon as it is added.
 			operation.progressHandler = { identifier in
@@ -66,6 +75,11 @@ class UpdateQueue: OperationQueue, @unchecked Sendable {
 			}
 
 			super.addOperation(op)
+
+			// Installing the handler already notified observers, but before the operation was
+			// enqueued, so they saw no state. Report `.pending` now; an operation waiting for a
+			// slot or a previous brew upgrade reports nothing else until it starts.
+			self.notifyObservers(for: operation.appIdentifier)
 		}
 	}
 

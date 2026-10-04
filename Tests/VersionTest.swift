@@ -323,12 +323,20 @@ class VersionTest: XCTestCase {
 										   remote: Version(versionNumber: "510", buildNumber: "510")))
 		XCTAssertTrue(self.updateAvailable(installed: Version(versionNumber: "2.1", buildNumber: "1234"),
 										   remote: Version(versionNumber: "1240", buildNumber: "1240")))
+	}
 
-		// Sanitization moves a feed version equal to the installed build to the build number, and keeps that change.
-		let bundle = self.bundle(with: Version(versionNumber: "5", buildNumber: "1234"))
-		let update = self.update(for: bundle, remote: Version(versionNumber: "1234", buildNumber: "1234")).sanitized(for: bundle)
-		XCTAssertNil(update.remoteVersion.versionNumber)
-		XCTAssertEqual(update.remoteVersion.buildNumber, "1234")
+	func testFourComponentUpdatesAreFound() {
+		// An app whose build repeats its version must still see updates that add a fourth component,
+		// whether the remote carries a build or not.
+		let installed = Version(versionNumber: "1.2.3", buildNumber: "1.2.3")
+		XCTAssertTrue(self.updateAvailable(installed: installed, remote: Version(versionNumber: "1.2.3.1", buildNumber: "1.2.3.1")))
+		XCTAssertTrue(self.updateAvailable(installed: installed, remote: Version(versionNumber: "1.2.3.1", buildNumber: "1231")))
+		XCTAssertTrue(self.updateAvailable(installed: installed, remote: Version(versionNumber: "1.2.3.1", buildNumber: "99")))
+		XCTAssertTrue(self.updateAvailable(installed: Version(versionNumber: "2.5.0", buildNumber: "2.5.0"),
+										   remote: Version(versionNumber: "2.5.0.1", buildNumber: "20501")))
+
+		// A build-less fourth component matching the installed version stays a postfix, as before.
+		XCTAssertFalse(self.updateAvailable(installed: installed, remote: Version(versionNumber: "1.2.3.4", buildNumber: nil)))
 	}
 
 	func testComparisonIsConsistent() {

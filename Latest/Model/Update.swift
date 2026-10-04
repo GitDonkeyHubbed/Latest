@@ -47,15 +47,27 @@ extension App {
 			self.updateAction = updateAction
 		}
 
-		/// Whether an update is available for the given app.
-		var updateAvailable: Bool {
-			var updateAvailable = app.version < remoteVersion
+		/// Whether this update is newer than the given locally installed bundle
+		/// and compatible with the running OS.
+		///
+		/// The `Update` object keeps the bundle it was created with. After an
+		/// in-app install the data store replaces that local bundle via
+		/// `App.with(bundle:)` while keeping this same `Update`. Comparing
+		/// against the original bundle would keep the app in Available Updates
+		/// even though the newer version is already on disk.
+		func isAvailable(for bundle: App.Bundle) -> Bool {
+			var available = bundle.version < remoteVersion
 
-			if updateAvailable, let minimumOSVersion {
-				updateAvailable = ProcessInfo.processInfo.isOperatingSystemAtLeast(minimumOSVersion)
+			if available, let minimumOSVersion {
+				available = ProcessInfo.processInfo.isOperatingSystemAtLeast(minimumOSVersion)
 			}
 
-			return updateAvailable
+			return available
+		}
+
+		/// Whether an update is available relative to the bundle this update was created for.
+		var updateAvailable: Bool {
+			isAvailable(for: app)
 		}
 
 		/// Whether the app is currently being updated.
@@ -111,8 +123,9 @@ extension App {
 		func sanitized(for bundle: App.Bundle) -> Update {
 			let version = remoteVersion.sanitize(with: bundle.version)
 
-			// Compare the strings: Version's `==` means equal precedence, which a moved build number may well keep.
-			guard version.versionNumber != remoteVersion.versionNumber || version.buildNumber != remoteVersion.buildNumber else { return self }
+			// Only keep a rewrite that changes precedence. Rewrites that keep it (e.g. dropping a fourth version
+			// component while the build stays the same) must not shadow the original version in later comparisons.
+			guard version != remoteVersion else { return self }
 
 			// Modify just the remote version
 			return Update(

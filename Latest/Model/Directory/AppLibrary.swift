@@ -111,6 +111,30 @@ class AppLibrary {
 		updateHandler(bundles)
 	}
 
+	/// Recollects every watched directory from disk immediately.
+	///
+	/// Cancels a pending coalesced refresh so an in-app update does not wait
+	/// for the filesystem debounce before the list can drop the updated app.
+	/// Manual reloads also use this so they compare remotes against current
+	/// on-disk versions instead of the last cached scan.
+	func refreshInstalledBundles(notifyHandler: Bool = true, completion: (([App.Bundle]) -> Void)? = nil) {
+		schedulerQueue.async {
+			self.updateWorkItem?.cancel()
+			self.updateWorkItem = nil
+
+			let directories = self.directoriesLock.withCriticalScope { Array(self.directories.values) }
+			for directory in directories {
+				directory.recollectSilently()
+			}
+
+			let current = self.bundles
+			if notifyHandler {
+				self.updateHandler(current)
+			}
+			completion?(current)
+		}
+	}
+
 	// MARK: - Directory Handling
 
 	/// The store handling application directories.
