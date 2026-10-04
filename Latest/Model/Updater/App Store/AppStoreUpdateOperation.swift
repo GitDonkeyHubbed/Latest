@@ -149,7 +149,9 @@ class AppStoreUpdateOperation: UpdateOperation, @unchecked Sendable {
 			let packageURL = URL(fileURLWithPath: path)
 			let fileManager = FileManager.default
 
-			let hardLinkURL = try fileManager.url(for: .itemReplacementDirectory, in: .userDomainMask, appropriateFor: packageURL, create: true).appending(path: packageURL.lastPathComponent, directoryHint: .notDirectory)
+			let hardLinkURL = try fileManager
+				.url(for: .itemReplacementDirectory, in: .userDomainMask, appropriateFor: packageURL, create: true)
+				.appending(path: packageURL.lastPathComponent, directoryHint: .notDirectory)
 			try fileManager.linkItem(at: packageURL, to: hardLinkURL)
 
 			return hardLinkURL

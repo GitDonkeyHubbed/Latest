@@ -109,8 +109,8 @@ class UpdateRepository {
 		// Strategy: Find all entries that point to the given app name. If only one entry comes up, return that. Otherwise, try to match bundle identifiers to narrow it down.
 		let name = bundle.fileURL.lastPathComponent
 		var possibleEntries = entries.filter { entry in
-			return entry.names.contains { n in
-				return n.caseInsensitiveCompare(name) == .orderedSame
+			return entry.names.contains { entryName in
+				return entryName.caseInsensitiveCompare(name) == .orderedSame
 			}
 		}
 
@@ -258,7 +258,12 @@ class UpdateRepository {
 			case .repository:
 				return nil
 			case .unsupportedApps:
-				return try! Data(contentsOf: Bundle.main.url(forResource: "ExcludedAppIdentifiers", withExtension: "plist")!)
+				do {
+					return try Data(contentsOf: Bundle.main.url(forResource: "ExcludedAppIdentifiers", withExtension: "plist")!)
+				} catch {
+					// The plist ships inside the app bundle, so failing to read it means the build itself is broken.
+					fatalError("Failed to read bundled ExcludedAppIdentifiers.plist: \(error)")
+				}
 			}
 		}
 

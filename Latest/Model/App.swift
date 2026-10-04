@@ -243,19 +243,19 @@ extension App {
 		let currentVersion = self.bundle.version
 		var versionInformation: DisplayableVersionInformation?
 
-		if let v = currentVersion.versionNumber, let nv = newVersion?.versionNumber {
-			versionInformation = DisplayableVersionInformation(rawCurrent: v, rawNew: nv)
+		if let currentNumber = currentVersion.versionNumber, let nv = newVersion?.versionNumber {
+			versionInformation = DisplayableVersionInformation(rawCurrent: currentNumber, rawNew: nv)
 
 			// If the shortVersion string is identical, but the bundle version is different
 			// Show the Bundle version in brackets like: "1.3 (21)"
-			if update?.updateAvailable ?? false, v == nv, let v = currentVersion.buildNumber, let nv = newVersion?.buildNumber {
-				versionInformation?.rawCurrent += " (\(v))"
+			if update?.updateAvailable ?? false, currentNumber == nv, let currentBuild = currentVersion.buildNumber, let nv = newVersion?.buildNumber {
+				versionInformation?.rawCurrent += " (\(currentBuild))"
 				versionInformation?.rawNew! += " (\(nv))"
 			}
-		} else if let v = currentVersion.buildNumber, let nv = newVersion?.buildNumber {
-			versionInformation = DisplayableVersionInformation(rawCurrent: v, rawNew: nv)
-		} else if let v = currentVersion.versionNumber ?? currentVersion.buildNumber {
-			versionInformation = DisplayableVersionInformation(rawCurrent: v, rawNew: nil)
+		} else if let currentBuild = currentVersion.buildNumber, let nv = newVersion?.buildNumber {
+			versionInformation = DisplayableVersionInformation(rawCurrent: currentBuild, rawNew: nv)
+		} else if let currentNumber = currentVersion.versionNumber ?? currentVersion.buildNumber {
+			versionInformation = DisplayableVersionInformation(rawCurrent: currentNumber, rawNew: nil)
 		}
 
 		return versionInformation

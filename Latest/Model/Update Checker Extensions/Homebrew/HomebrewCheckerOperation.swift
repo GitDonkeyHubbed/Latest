@@ -67,7 +67,12 @@ class HomebrewCheckerOperation: StatefulOperation, UpdateCheckerOperation, @unch
 			if let caskToken, let brewURL = HomebrewInstallation.brewURL, HomebrewInstallation.isCaskInstalled(caskToken, brewURL: brewURL),
 			   bundle.fileURL.resolvingSymlinksInPath().deletingLastPathComponent().standardizedFileURL == applicationsURL {
 				updateAction = .builtIn(block: { app in
-					UpdateQueue.shared.addOperation(HomebrewUpdateOperation(bundleIdentifier: app.bundleIdentifier, appIdentifier: app.identifier, caskToken: caskToken, brewURL: brewURL))
+					UpdateQueue.shared.addOperation(HomebrewUpdateOperation(
+						bundleIdentifier: app.bundleIdentifier,
+						appIdentifier: app.identifier,
+						caskToken: caskToken,
+						brewURL: brewURL
+					))
 				})
 			} else {
 				updateAction = .external(label: bundle.name, block: { app in
@@ -75,7 +80,15 @@ class HomebrewCheckerOperation: StatefulOperation, UpdateCheckerOperation, @unch
 				})
 			}
 
-			self.update = App.Update(app: bundle, remoteVersion: version, minimumOSVersion: minimumOSVersion, source: .homebrew, date: nil, releaseNotes: nil, updateAction: updateAction)
+			self.update = App.Update(
+				app: bundle,
+				remoteVersion: version,
+				minimumOSVersion: minimumOSVersion,
+				source: .homebrew,
+				date: nil,
+				releaseNotes: nil,
+				updateAction: updateAction
+			)
 		}
 	}
 

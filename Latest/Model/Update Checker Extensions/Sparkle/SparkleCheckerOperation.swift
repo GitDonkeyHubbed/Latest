@@ -110,9 +110,17 @@ class SparkleUpdateCheckerOperation: StatefulOperation, UpdateCheckerOperation, 
 		}
 
 		// Build update
-		self.update = App.Update(app: self.app, remoteVersion: version, minimumOSVersion: minimumOSVersion, source: .sparkle, date: appcastItem.date, releaseNotes: releaseNotes, updateAction: .builtIn(block: { app in
-			UpdateQueue.shared.addOperation(SparkleUpdateOperation(bundleIdentifier: app.bundleIdentifier, appIdentifier: app.identifier))
-		}))
+		self.update = App.Update(
+			app: self.app,
+			remoteVersion: version,
+			minimumOSVersion: minimumOSVersion,
+			source: .sparkle,
+			date: appcastItem.date,
+			releaseNotes: releaseNotes,
+			updateAction: .builtIn(block: { app in
+				UpdateQueue.shared.addOperation(SparkleUpdateOperation(bundleIdentifier: app.bundleIdentifier, appIdentifier: app.identifier))
+			})
+		)
 
 		DispatchQueue.main.async(execute: {
 			self.finish()
@@ -135,7 +143,8 @@ extension SparkleUpdateCheckerOperation: SPUUserDriver {
 
 	func showUpdateNotFoundWithError(_ error: Error, acknowledgement: @escaping () -> Void) {
 		let nsError = error as NSError
-		if nsError.domain == SUSparkleErrorDomain && nsError.code == SUError.noUpdateError.rawValue, let appcastItem = nsError.userInfo[SPULatestAppcastItemFoundKey] as? SUAppcastItem {
+		if nsError.domain == SUSparkleErrorDomain && nsError.code == SUError.noUpdateError.rawValue,
+		   let appcastItem = nsError.userInfo[SPULatestAppcastItemFoundKey] as? SUAppcastItem {
 			self.finish(with: appcastItem)
 		} else {
 			self.finish(with: error)

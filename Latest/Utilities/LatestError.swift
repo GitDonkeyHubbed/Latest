@@ -40,14 +40,14 @@ enum LatestError: LocalizedError {
 	/// The localized description of the error.
 	var localizedDescription: String {
 		switch self {
-			case .updateInfoUnavailable:
-				return NSLocalizedString("UpdateInfoUnavailableError", comment: "Short description of error stating that update info could not be retrieved for a given app.")
+		case .updateInfoUnavailable:
+			return NSLocalizedString("UpdateInfoUnavailableError", comment: "Short description of error stating that update info could not be retrieved for a given app.")
 
-			case .releaseNotesUnavailable:
-				return NSLocalizedString("ReleaseNotesUnavailableError", comment: "Short description of error that no release notes were found.")
+		case .releaseNotesUnavailable:
+			return NSLocalizedString("ReleaseNotesUnavailableError", comment: "Short description of error that no release notes were found.")
 
-			case .notSignedInToAppStore:
-				return NSLocalizedString("AppStoreNotSignedInError", comment: "Short description of error when no update was found for a particular app.")
+		case .notSignedInToAppStore:
+			return NSLocalizedString("AppStoreNotSignedInError", comment: "Short description of error when no update was found for a particular app.")
 
 		case .installHelperCommunicationFailed:
 			return NSLocalizedString("InstallHelperCommunicationFailedError", comment: "Short description of an error when communicating with the apps install helper.")
@@ -64,8 +64,8 @@ enum LatestError: LocalizedError {
 		case .homebrewUpgradeNotPerformed:
 			return NSLocalizedString("HomebrewUpgradeNotPerformedError", value: "Homebrew did not update the app.", comment: "Short description of an error stating that Homebrew reported success without upgrading anything.")
 
-			case .custom(let title, _):
-				return title
+		case .custom(let title, _):
+			return title
 		}
 	}
 

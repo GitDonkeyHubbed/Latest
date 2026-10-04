@@ -57,7 +57,10 @@ class MainWindowController: NSWindowController, NSMenuItemValidation, NSMenuDele
         super.windowDidLoad()
 
 		self.window?.titlebarAppearsTransparent = true
-		self.window?.title = Bundle.main.localizedInfoDictionary?[kCFBundleNameKey as String] as! String
+		guard let appName = Bundle.main.localizedInfoDictionary?[kCFBundleNameKey as String] as? String else {
+			fatalError("The localized Info.plist must provide a CFBundleName string")
+		}
+		self.window?.title = appName
 		self.window?.toolbarStyle = .unified
 
 		// The detail pane is backed by glass on macOS 26+. Glass samples what is
@@ -158,7 +161,7 @@ class MainWindowController: NSWindowController, NSMenuItemValidation, NSMenuDele
 
         switch action {
 		// Only allow the find item
-		case #selector(performFindPanelAction(_:)):
+        case #selector(performFindPanelAction(_:)):
 			return menuItem.tag == 1
         default:
             return validate(action)
@@ -175,9 +178,9 @@ class MainWindowController: NSWindowController, NSMenuItemValidation, NSMenuDele
             guard let action = menuItem.action else { return }
 
             switch action {
-			case #selector(toggleShowInstalledUpdates(_:)):
+            case #selector(toggleShowInstalledUpdates(_:)):
                 menuItem.state = AppListSettings.shared.showInstalledUpdates ? .on : .off
-			case #selector(toggleShowIgnoredUpdates(_:)):
+            case #selector(toggleShowIgnoredUpdates(_:)):
                 menuItem.state = AppListSettings.shared.showIgnoredUpdates ? .on : .off
             default:
                 ()
@@ -228,7 +231,10 @@ class MainWindowController: NSWindowController, NSMenuItemValidation, NSMenuDele
 	// MARK: - Actions
 
 	@IBAction func changeSortOrder(_ sender: NSMenuItem?) {
-		AppListSettings.shared.sortOrder = sender?.representedObject as! AppListSettings.SortOptions
+		guard let sortOrder = sender?.representedObject as? AppListSettings.SortOptions else {
+			fatalError("Sort menu items must carry an AppListSettings.SortOptions as their represented object")
+		}
+		AppListSettings.shared.sortOrder = sortOrder
 	}
 
 	@IBAction func toggleShowInstalledUpdates(_ sender: NSMenuItem?) {

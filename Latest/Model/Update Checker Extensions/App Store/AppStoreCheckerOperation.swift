@@ -108,7 +108,9 @@ extension AppStoreUpdateCheckerOperation {
 	/// Returns a proper update object from the given app store entry.
 	private func update(from entry: AppStoreEntry) -> App.Update {
 		let version = Version(versionNumber: entry.versionNumber, buildNumber: nil)
-		let action: App.Update.Action = if Self.isIOSAppBundle(at: app.fileURL) || AppStoreUpdateSettings.alwaysPerformManualUpdates.active || Self.requiresExternalUpdateWorkaround() {
+		let action: App.Update.Action = if Self.isIOSAppBundle(at: app.fileURL) ||
+			AppStoreUpdateSettings.alwaysPerformManualUpdates.active ||
+			Self.requiresExternalUpdateWorkaround() {
 			// iOS Apps or affected macOS versions: Open App Store page where the user can update manually.
 			.external(label: NSLocalizedString("AppStoreSource", comment: "The source name of apps loaded from the App Store."), block: { _ in
 				Self.openAppStorePage(for: entry)
@@ -121,13 +123,26 @@ extension AppStoreUpdateCheckerOperation {
 
 		}
 
-		return App.Update(app: self.app, remoteVersion: version, minimumOSVersion: entry.minimumOSVersion, source: .appStore, date: entry.date, releaseNotes: entry.releaseNotes, updateAction: action)
+		return App.Update(
+			app: self.app,
+			remoteVersion: version,
+			minimumOSVersion: entry.minimumOSVersion,
+			source: .appStore,
+			date: entry.date,
+			releaseNotes: entry.releaseNotes,
+			updateAction: action
+		)
 	}
 
 	private static func updateApp(_ app: App.Bundle, entry: AppStoreEntry) {
 		do {
 			try AppStoreUpdateOperation.prepareForUpdates()
-			UpdateQueue.shared.addOperation(AppStoreUpdateOperation(bundleIdentifier: app.bundleIdentifier, installURL: app.fileURL, appIdentifier: app.identifier, appStoreIdentifier: entry.appStoreIdentifier))
+			UpdateQueue.shared.addOperation(AppStoreUpdateOperation(
+				bundleIdentifier: app.bundleIdentifier,
+				installURL: app.fileURL,
+				appIdentifier: app.identifier,
+				appStoreIdentifier: entry.appStoreIdentifier
+			))
 		} catch {
 			UpdateInstallHelperAlert.present(with: error, fallbackURL: entry.pageURL)
 		}

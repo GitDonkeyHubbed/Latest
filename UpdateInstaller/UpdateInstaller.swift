@@ -221,13 +221,21 @@ class UpdateInstaller: NSObject, UpdateInstallerProtocol {
 		// The root process's temporary directory is itself root-owned and mode 0700.
 		let directory = fileManager.temporaryDirectory.appendingPathComponent("com.max-langer.latest.staging-" + UUID().uuidString, isDirectory: true)
 		do {
-			try fileManager.createDirectory(at: directory, withIntermediateDirectories: false, attributes: [.ownerAccountID: 0, .groupOwnerAccountID: 0, .posixPermissions: 0o700])
+			try fileManager.createDirectory(
+				at: directory,
+				withIntermediateDirectories: false,
+				attributes: [.ownerAccountID: 0, .groupOwnerAccountID: 0, .posixPermissions: 0o700]
+			)
 		} catch {
 			throw UpdateInstallerError.packageStagingFailed
 		}
 
 		let packageURL = directory.appendingPathComponent("update.pkg", isDirectory: false)
-		guard fileManager.createFile(atPath: packageURL.path(percentEncoded: false), contents: nil, attributes: [.ownerAccountID: 0, .groupOwnerAccountID: 0, .posixPermissions: 0o600]) else {
+		guard fileManager.createFile(
+			atPath: packageURL.path(percentEncoded: false),
+			contents: nil,
+			attributes: [.ownerAccountID: 0, .groupOwnerAccountID: 0, .posixPermissions: 0o600]
+		) else {
 			try? fileManager.removeItem(at: directory)
 			throw UpdateInstallerError.packageStagingFailed
 		}
@@ -265,31 +273,7 @@ class UpdateInstaller: NSObject, UpdateInstallerProtocol {
 		let directoryComponents = Array(components.dropFirst().dropLast())
 		let fileName = components[components.count - 1]
 
-		// Number of trailing directory components allowed to be created if missing.
-		let creatableSuffix = 2
-
-		var parentFD = open("/", O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC)
-		guard parentFD >= 0 else { throw UpdateInstallerError.invalidReceiptPath }
-
-		for (index, component) in directoryComponents.enumerated() {
-			var childFD = component.withCString { openat(parentFD, $0, O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC) }
-			if childFD < 0 && errno == ENOENT && index >= directoryComponents.count - creatableSuffix {
-				let made = component.withCString { mkdirat(parentFD, $0, 0o755) }
-				if made == 0 {
-					childFD = component.withCString { openat(parentFD, $0, O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC) }
-					if childFD >= 0 {
-						_ = fchown(childFD, 0, 0)
-						_ = fchmod(childFD, 0o755)
-					}
-				}
-			}
-			guard childFD >= 0 else {
-				close(parentFD)
-				throw UpdateInstallerError.invalidReceiptPath
-			}
-			close(parentFD)
-			parentFD = childFD
-		}
+		let parentFD = try openReceiptDirectory(directoryComponents)
 
 		// `parentFD` is now the real `_MASReceipt` directory with no symlinked ancestor.
 		// O_NOFOLLOW does not stop hard links: truncating an existing entry in place could
@@ -320,6 +304,40 @@ class UpdateInstaller: NSObject, UpdateInstallerProtocol {
 
 		_ = fchown(fileFD, 0, 0)
 		_ = fchmod(fileFD, 0o755)
+	}
+
+	/// Descends from `/` through `directoryComponents` one component at a time with
+	/// `O_NOFOLLOW` per level, creating only the trailing bundle directories if missing.
+	/// Returns an open descriptor for the final directory; the caller owns and must close it.
+	/// Every intermediate descriptor is closed on all paths, including when this throws.
+	private static func openReceiptDirectory(_ directoryComponents: [String]) throws -> Int32 {
+		// Number of trailing directory components allowed to be created if missing.
+		let creatableSuffix = 2
+
+		var parentFD = open("/", O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC)
+		guard parentFD >= 0 else { throw UpdateInstallerError.invalidReceiptPath }
+
+		for (index, component) in directoryComponents.enumerated() {
+			var childFD = component.withCString { openat(parentFD, $0, O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC) }
+			if childFD < 0 && errno == ENOENT && index >= directoryComponents.count - creatableSuffix {
+				let made = component.withCString { mkdirat(parentFD, $0, 0o755) }
+				if made == 0 {
+					childFD = component.withCString { openat(parentFD, $0, O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC) }
+					if childFD >= 0 {
+						_ = fchown(childFD, 0, 0)
+						_ = fchmod(childFD, 0o755)
+					}
+				}
+			}
+			guard childFD >= 0 else {
+				close(parentFD)
+				throw UpdateInstallerError.invalidReceiptPath
+			}
+			close(parentFD)
+			parentFD = childFD
+		}
+
+		return parentFD
 	}
 
 	private func performCommand(_ executablePath: String, arguments: [String], environment: [String: String] = [:]) throws -> (success: Bool, output: String) {

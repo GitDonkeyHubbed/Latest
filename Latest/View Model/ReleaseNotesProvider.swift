@@ -59,12 +59,12 @@ class ReleaseNotesProvider {
 	private func loadReleaseNotes(for app: App, with completion: @escaping (ReleaseNotes) -> Void) {
 		if let releaseNotes = app.releaseNotes {
 			switch releaseNotes {
-				case .html(let html):
-					completion(self.releaseNotes(from: html, baseURL: nil))
-				case .url(let url):
-					self.releaseNotes(from: url, with: completion)
-				case .encoded(let data):
-					completion(self.releaseNotes(from: data))
+			case .html(let html):
+				completion(self.releaseNotes(from: html, baseURL: nil))
+			case .url(let url):
+				self.releaseNotes(from: url, with: completion)
+			case .encoded(let data):
+				completion(self.releaseNotes(from: data))
 			}
 		} else if let error = app.error {
 			completion(.failure(error))

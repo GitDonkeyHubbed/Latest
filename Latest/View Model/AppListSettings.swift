@@ -48,56 +48,56 @@ struct AppListSettings: Observable {
 
 	/// The order the app list should be shown in.
 	var sortOrder: SortOptions {
-		set {
-			set(newValue.rawValue, forKey: sortOptionsKey)
-		}
-
 		get {
 			SortOptions(rawValue: UserDefaults.standard.integer(forKey: sortOptionsKey)) ?? .updateDate
+		}
+
+		set {
+			set(newValue.rawValue, forKey: sortOptionsKey)
 		}
 	}
 
 	/// Whether installed apps should be visible
 	var showInstalledUpdates: Bool {
-		set {
-			set(newValue, forKey: showInstalledUpdatesKey)
-		}
-
 		get {
 			UserDefaults.standard.bool(forKey: showInstalledUpdatesKey)
+		}
+
+		set {
+			set(newValue, forKey: showInstalledUpdatesKey)
 		}
 	}
 
 	/// Whether ignored apps should be visible
 	var showIgnoredUpdates: Bool {
-		set {
-			set(newValue, forKey: showIgnoredUpdatesKey)
-		}
-
 		get {
 			UserDefaults.standard.bool(forKey: showIgnoredUpdatesKey)
+		}
+
+		set {
+			set(newValue, forKey: showIgnoredUpdatesKey)
 		}
 	}
 
 	/// Whether unsupported apps should be visible
 	var includeUnsupportedApps: Bool {
-		set {
-			set(newValue, forKey: includeUnsupportedAppsKey)
-		}
-
 		get {
 			UserDefaults.standard.bool(forKey: includeUnsupportedAppsKey)
+		}
+
+		set {
+			set(newValue, forKey: includeUnsupportedAppsKey)
 		}
 	}
 
 	/// Whether apps only partially supported by Latest should be included.
 	var includeAppsWithLimitedSupport: Bool {
-		set {
-			set(newValue, forKey: includeAppsWithLimitedSupportKey)
-		}
-
 		get {
 			UserDefaults.standard.bool(forKey: includeAppsWithLimitedSupportKey)
+		}
+
+		set {
+			set(newValue, forKey: includeAppsWithLimitedSupportKey)
 		}
 	}
 

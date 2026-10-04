@@ -45,7 +45,10 @@ class UpdateButtonCell: NSButtonCell {
 
 	/// A reference to the view holding the cell.
 	private var view: UpdateButton {
-		return self.controlView as! UpdateButton
+		guard let view = self.controlView as? UpdateButton else {
+			fatalError("UpdateButtonCell must only be used as the cell of an UpdateButton")
+		}
+		return view
 	}
 
 	/// Convenience for accessing the tint of the button.
@@ -154,7 +157,8 @@ class UpdateButtonCell: NSButtonCell {
 
 		// Draw background circle
 		NSColor.tertiaryLabelColor.setStroke()
-		let alignedRect = controlView.backingAlignedRect(NSRect(origin: center, size: .zero).insetBy(dx: -radius, dy: -radius), options: .alignAllEdgesOutward)
+		let circleRect = NSRect(origin: center, size: .zero).insetBy(dx: -radius, dy: -radius)
+		let alignedRect = controlView.backingAlignedRect(circleRect, options: .alignAllEdgesOutward)
 		var path = NSBezierPath(ovalIn: alignedRect)
 		path.lineWidth = 2.5
 		path.stroke()

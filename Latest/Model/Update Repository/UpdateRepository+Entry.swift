@@ -195,7 +195,8 @@ fileprivate extension UpdateRepository.Entry {
 				case pkgutil
 			}
 
-			guard var a = try? container.nestedUnkeyedContainer(forKey: .uninstall), let uninstallContainer = try? a.nestedContainer(keyedBy: UninstallKeys.self) else { return ([], []) }
+			guard var uninstallItems = try? container.nestedUnkeyedContainer(forKey: .uninstall),
+				  let uninstallContainer = try? uninstallItems.nestedContainer(keyedBy: UninstallKeys.self) else { return ([], []) }
 
 			// Try to get application names
 			let names: [String] = (try? uninstallContainer.decodeVariable(String.self, forKey: .delete))?.compactMap { path in

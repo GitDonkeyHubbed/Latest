@@ -27,11 +27,11 @@ private enum ReleaseNotesContent {
 		/// Whether the currently displayed content is scrollable.
 		var isScrollable: Bool {
 			switch self {
-				case .loading, .error:
-					return false
+			case .loading, .error:
+				return false
 
-				case .text:
-					return true
+			case .text:
+				return true
 			}
 		}
 	}
@@ -181,7 +181,15 @@ class ReleaseNotesViewController: NSViewController {
     override func viewWillAppear() {
         super.viewWillAppear()
 
-        let constraint = NSLayoutConstraint(item: self.appInfoContentView!, attribute: .top, relatedBy: .equal, toItem: self.view.window?.contentLayoutGuide, attribute: .top, multiplier: 1.0, constant: 0)
+        let constraint = NSLayoutConstraint(
+            item: self.appInfoContentView!,
+            attribute: .top,
+            relatedBy: .equal,
+            toItem: self.view.window?.contentLayoutGuide,
+            attribute: .top,
+            multiplier: 1.0,
+            constant: 0
+        )
         constraint.isActive = true
 
 		self.setEmptyState()
@@ -230,10 +238,10 @@ class ReleaseNotesViewController: NSViewController {
 			guard self.app?.identifier == app.identifier else { return }
 
 			switch result {
-				case .success(let releaseNotes):
-					self.update(with: releaseNotes)
-				case .failure(let error):
-					self.show(error)
+			case .success(let releaseNotes):
+				self.update(with: releaseNotes)
+			case .failure(let error):
+				self.show(error)
 			}
 		}
     }
@@ -374,7 +382,9 @@ class ReleaseNotesViewController: NSViewController {
 	override func prepare(for segue: NSStoryboardSegue, sender: Any?) {
 		switch segue.identifier {
 		case "presentSupportStateInfo":
-			guard let controller = segue.destinationController as? SupportStatusInfoViewController else { fatalError("Unknown controller for segue \(String(describing: segue.identifier))")}
+			guard let controller = segue.destinationController as? SupportStatusInfoViewController else {
+				fatalError("Unknown controller for segue \(String(describing: segue.identifier))")
+			}
 			controller.app = self.app
 		default:
 			break

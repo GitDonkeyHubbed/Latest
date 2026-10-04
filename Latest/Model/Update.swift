@@ -115,7 +115,15 @@ extension App {
 			guard version.versionNumber != remoteVersion.versionNumber || version.buildNumber != remoteVersion.buildNumber else { return self }
 
 			// Modify just the remote version
-			return Update(app: app, remoteVersion: version, minimumOSVersion: minimumOSVersion, source: source, date: date, releaseNotes: releaseNotes, updateAction: updateAction)
+			return Update(
+				app: app,
+				remoteVersion: version,
+				minimumOSVersion: minimumOSVersion,
+				source: source,
+				date: date,
+				releaseNotes: releaseNotes,
+				updateAction: updateAction
+			)
 		}
 
 		// MARK: - Equatable

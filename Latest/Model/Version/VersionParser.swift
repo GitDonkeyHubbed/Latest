@@ -108,6 +108,8 @@ extension VersionParser {
 
 		/// Initializes the pattern with its string representation and the to be parsed components.
 		init(pattern: String, components: [Component: Int]) {
+			// All patterns are compile-time string literals defined above, so a failure is a programmer error.
+			// swiftlint:disable:next force_try
 			self.regex = try! NSRegularExpression(pattern: pattern)
 			self.components = components
 		}

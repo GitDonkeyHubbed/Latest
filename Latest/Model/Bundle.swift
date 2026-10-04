@@ -72,7 +72,13 @@ extension App {
 				  let fileURL = coder.decodeObject(of: NSURL.self, forKey: "fileURL") as URL?,
 				  let rawSource = coder.decodeObject(of: NSString.self, forKey: "source") as String?, let source = Source(rawValue: rawSource) else { return nil }
 
-			self.init(version: Version(versionNumber: versionNumber, buildNumber: buildNumber), name: name, bundleIdentifier: bundleIdentifier, fileURL: fileURL, source: source)
+			self.init(
+				version: Version(versionNumber: versionNumber, buildNumber: buildNumber),
+				name: name,
+				bundleIdentifier: bundleIdentifier,
+				fileURL: fileURL,
+				source: source
+			)
 		}
 
 		func encode(with coder: NSCoder) {

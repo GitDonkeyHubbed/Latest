@@ -100,7 +100,15 @@ class UpdateTableViewController: NSViewController, NSMenuItemValidation, NSTable
 		self.updateTitleAndBatch()
 
 		// Setup search field
-        NSLayoutConstraint(item: self.searchField!, attribute: .top, relatedBy: .equal, toItem: self.view.window?.contentLayoutGuide, attribute: .top, multiplier: 1.0, constant: 1).isActive = true
+        NSLayoutConstraint(
+            item: self.searchField!,
+            attribute: .top,
+            relatedBy: .equal,
+            toItem: self.view.window?.contentLayoutGuide,
+            attribute: .top,
+            multiplier: 1.0,
+            constant: 1
+        ).isActive = true
 		self.view.window?.makeFirstResponder(nil)
 	}
 
@@ -272,9 +280,9 @@ class UpdateTableViewController: NSViewController, NSMenuItemValidation, NSTable
 		case #selector(unignoreApp(_:)):
 			menuItem.isHidden = !app.isIgnored
 			return true
-        default:
-            ()
-        }
+		default:
+			()
+		}
 
 		return false
     }
@@ -434,7 +442,8 @@ class UpdateTableViewController: NSViewController, NSMenuItemValidation, NSTable
 extension UpdateTableViewController {
 
 	private func contentCell(for app: App) -> NSView? {
-        guard let cell = tableView.makeView(withIdentifier: NSUserInterfaceItemIdentifier(rawValue: "MLMUpdateCellIdentifier"), owner: self) as? UpdateCell else {
+        let cellIdentifier = NSUserInterfaceItemIdentifier(rawValue: "MLMUpdateCellIdentifier")
+        guard let cell = tableView.makeView(withIdentifier: cellIdentifier, owner: self) as? UpdateCell else {
             return nil
         }
 
@@ -456,7 +465,8 @@ extension UpdateTableViewController {
 	}
 
 	private func headerCell(of section: AppListSnapshot.Section) -> NSView? {
-		let view = self.tableView.makeView(withIdentifier: NSUserInterfaceItemIdentifier(rawValue: "MLMUpdateCellSectionIdentifier"), owner: self) as? UpdateGroupCellView
+		let cellIdentifier = NSUserInterfaceItemIdentifier(rawValue: "MLMUpdateCellSectionIdentifier")
+		let view = self.tableView.makeView(withIdentifier: cellIdentifier, owner: self) as? UpdateGroupCellView
 
 		view?.section = section
 

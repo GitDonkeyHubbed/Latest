@@ -50,23 +50,45 @@ class OSVersionTest: XCTestCase {
 
 	func testRequiresExternalUpdateWorkaround() {
 		// macOS 13 (Ventura)
-		XCTAssertFalse(AppStoreUpdateCheckerOperation.requiresExternalUpdateWorkaround(for: OperatingSystemVersion(majorVersion: 13, minorVersion: 5, patchVersion: 0)))
+		XCTAssertFalse(AppStoreUpdateCheckerOperation.requiresExternalUpdateWorkaround(
+			for: OperatingSystemVersion(majorVersion: 13, minorVersion: 5, patchVersion: 0)
+		))
 
 		// macOS 14 (Sonoma)
-		XCTAssertFalse(AppStoreUpdateCheckerOperation.requiresExternalUpdateWorkaround(for: OperatingSystemVersion(majorVersion: 14, minorVersion: 8, patchVersion: 1)))
-		XCTAssertTrue(AppStoreUpdateCheckerOperation.requiresExternalUpdateWorkaround(for: OperatingSystemVersion(majorVersion: 14, minorVersion: 8, patchVersion: 2)))
-		XCTAssertTrue(AppStoreUpdateCheckerOperation.requiresExternalUpdateWorkaround(for: OperatingSystemVersion(majorVersion: 14, minorVersion: 9, patchVersion: 0)))
+		XCTAssertFalse(AppStoreUpdateCheckerOperation.requiresExternalUpdateWorkaround(
+			for: OperatingSystemVersion(majorVersion: 14, minorVersion: 8, patchVersion: 1)
+		))
+		XCTAssertTrue(AppStoreUpdateCheckerOperation.requiresExternalUpdateWorkaround(
+			for: OperatingSystemVersion(majorVersion: 14, minorVersion: 8, patchVersion: 2)
+		))
+		XCTAssertTrue(AppStoreUpdateCheckerOperation.requiresExternalUpdateWorkaround(
+			for: OperatingSystemVersion(majorVersion: 14, minorVersion: 9, patchVersion: 0)
+		))
 
 		// macOS 15 (Sequoia)
-		XCTAssertFalse(AppStoreUpdateCheckerOperation.requiresExternalUpdateWorkaround(for: OperatingSystemVersion(majorVersion: 15, minorVersion: 7, patchVersion: 1)))
-		XCTAssertTrue(AppStoreUpdateCheckerOperation.requiresExternalUpdateWorkaround(for: OperatingSystemVersion(majorVersion: 15, minorVersion: 7, patchVersion: 2)))
-		XCTAssertTrue(AppStoreUpdateCheckerOperation.requiresExternalUpdateWorkaround(for: OperatingSystemVersion(majorVersion: 15, minorVersion: 8, patchVersion: 0)))
+		XCTAssertFalse(AppStoreUpdateCheckerOperation.requiresExternalUpdateWorkaround(
+			for: OperatingSystemVersion(majorVersion: 15, minorVersion: 7, patchVersion: 1)
+		))
+		XCTAssertTrue(AppStoreUpdateCheckerOperation.requiresExternalUpdateWorkaround(
+			for: OperatingSystemVersion(majorVersion: 15, minorVersion: 7, patchVersion: 2)
+		))
+		XCTAssertTrue(AppStoreUpdateCheckerOperation.requiresExternalUpdateWorkaround(
+			for: OperatingSystemVersion(majorVersion: 15, minorVersion: 8, patchVersion: 0)
+		))
 
 		// macOS 26+
-		XCTAssertFalse(AppStoreUpdateCheckerOperation.requiresExternalUpdateWorkaround(for: OperatingSystemVersion(majorVersion: 26, minorVersion: 0, patchVersion: 0)))
-		XCTAssertTrue(AppStoreUpdateCheckerOperation.requiresExternalUpdateWorkaround(for: OperatingSystemVersion(majorVersion: 26, minorVersion: 1, patchVersion: 0)))
-		XCTAssertTrue(AppStoreUpdateCheckerOperation.requiresExternalUpdateWorkaround(for: OperatingSystemVersion(majorVersion: 26, minorVersion: 2, patchVersion: 0)))
-		XCTAssertTrue(AppStoreUpdateCheckerOperation.requiresExternalUpdateWorkaround(for: OperatingSystemVersion(majorVersion: 27, minorVersion: 0, patchVersion: 0)))
+		XCTAssertFalse(AppStoreUpdateCheckerOperation.requiresExternalUpdateWorkaround(
+			for: OperatingSystemVersion(majorVersion: 26, minorVersion: 0, patchVersion: 0)
+		))
+		XCTAssertTrue(AppStoreUpdateCheckerOperation.requiresExternalUpdateWorkaround(
+			for: OperatingSystemVersion(majorVersion: 26, minorVersion: 1, patchVersion: 0)
+		))
+		XCTAssertTrue(AppStoreUpdateCheckerOperation.requiresExternalUpdateWorkaround(
+			for: OperatingSystemVersion(majorVersion: 26, minorVersion: 2, patchVersion: 0)
+		))
+		XCTAssertTrue(AppStoreUpdateCheckerOperation.requiresExternalUpdateWorkaround(
+			for: OperatingSystemVersion(majorVersion: 27, minorVersion: 0, patchVersion: 0)
+		))
 	}
 
 }

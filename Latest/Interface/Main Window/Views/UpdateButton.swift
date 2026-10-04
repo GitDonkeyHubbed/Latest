@@ -70,7 +70,10 @@ class UpdateButton: NSButton {
 
 	/// The cell handling the drawing for this button.
 	var contentCell: UpdateButtonCell {
-		return self.cell as! UpdateButtonCell
+		guard let cell = self.cell as? UpdateButtonCell else {
+			fatalError("UpdateButton must be backed by an UpdateButtonCell")
+		}
+		return cell
 	}
 
 	/// The adaptive resting fill of the update pill. Resolves per appearance,
@@ -162,7 +165,11 @@ class UpdateButton: NSButton {
 			byteFormatter.countStyle = .file
 
 			let formatString = NSLocalizedString("DownloadingUpdateStatus", comment: "Update progress state of downloading an update. The first %@ stands for the already downloaded bytes, the second one for the total amount of bytes. One expected output would be 'Downloading 3 MB of 21 MB'")
-			self.toolTip = String.localizedStringWithFormat(formatString, byteFormatter.string(fromByteCount: loadedSize), byteFormatter.string(fromByteCount: totalSize))
+			self.toolTip = String.localizedStringWithFormat(
+				formatString,
+				byteFormatter.string(fromByteCount: loadedSize),
+				byteFormatter.string(fromByteCount: totalSize)
+			)
 
 		case .extracting(let progress):
 			self.updateInterfaceVisibility(with: .progress)

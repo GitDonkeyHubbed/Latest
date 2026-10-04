@@ -60,7 +60,10 @@ class UpdateGroupCellView: NSTableCellView {
 
 			// Remove the underline and add special formatting to the count
 			let formattedText = NSMutableAttributedString(string: text.string)
-			formattedText.setAttributes([.foregroundColor: NSColor.tertiaryLabelColor, .font: NSFont.boldSystemFont(ofSize: NSFont.systemFontSize(for: .small))], range: range)
+			formattedText.setAttributes([
+				.foregroundColor: NSColor.tertiaryLabelColor,
+				.font: NSFont.boldSystemFont(ofSize: NSFont.systemFontSize(for: .small))
+			], range: range)
 
 			self.titleField.attributedStringValue = formattedText
 		}

@@ -35,7 +35,8 @@ class AppDirectoryViewController: SettingsTabItemViewController, NSTableViewData
 	}
 
 	func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
-		guard let view = tableView.makeView(withIdentifier: NSUserInterfaceItemIdentifier("directoryCellView"), owner: self) as? AppDirectoryCellView else { return nil }
+		let identifier = NSUserInterfaceItemIdentifier("directoryCellView")
+		guard let view = tableView.makeView(withIdentifier: identifier, owner: self) as? AppDirectoryCellView else { return nil }
 		view.url = directoryStore.URLs[row]
 
 		return view
