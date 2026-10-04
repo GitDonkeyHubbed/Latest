@@ -10,7 +10,7 @@ import Cocoa
 
 /// View explaining the support state of the given app.
 class SupportStatusInfoViewController: NSViewController {
-	
+
 	/// The app for which the support state is explained.
 	var app: App? {
 		didSet {
@@ -18,25 +18,24 @@ class SupportStatusInfoViewController: NSViewController {
 			updateUI()
 		}
 	}
-	
 
 	// MARK: - Interface
-	
+
 	@IBOutlet private weak var statusImageView: NSImageView!
 	@IBOutlet private weak var titleLabel: NSTextField!
 	@IBOutlet private weak var descriptionLabel: NSTextField!
-	
+
 	@IBOutlet private weak var reportIssueButton: NSButton!
-	
+
 	override func viewDidLoad() {
 		super.viewDidLoad()
-		
+
 		updateUI()
 	}
-	
+
 	private func updateUI() {
 		guard let app else { return }
-		
+
 		statusImageView.image = app.supportState.statusImage
 		titleLabel.stringValue = app.supportState.label
 
@@ -52,9 +51,9 @@ class SupportStatusInfoViewController: NSViewController {
 			reportIssueButton.isHidden = false
 		}
 	}
-	
+
 	// MARK: - Actions
-	
+
 	/// Opens the issue page on GitHub.
 	@IBAction func reportIssue(_ sender: NSButton) {
 		NSWorkspace.shared.open(URL(string: "https://github.com/mangerlahn/Latest/issues")!)

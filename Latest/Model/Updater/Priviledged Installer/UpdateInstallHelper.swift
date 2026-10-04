@@ -12,16 +12,16 @@ import ServiceManagement
 
 /// Manages the privileged helper daemon used to install App Store updates via XPC.
 actor InstallHelper {
-	
+
 	/// The shared instance used for installing packages.
 	static let shared = InstallHelper()
-	
+
 	private static let installHelperName = "com.max-langer.latest.UpdateInstaller"
-	
+
 	private init() {}
-	
+
 	// MARK: - Helper Registration
-	
+
 	/// Verifies that the install helper is registered and approved.
 	static func verifyAvailability() throws(InstallHelperError) {
 		switch helperService.status {
@@ -35,7 +35,7 @@ actor InstallHelper {
 			fatalError("Unhandled SMAppService.Status case")
 		}
 	}
-	
+
 	/// Registers the helper or opens System Settings if approval is required.
 	static func installHelper() throws {
 		let service = helperService
@@ -50,11 +50,11 @@ actor InstallHelper {
 			break
 		}
 	}
-	
+
 	private static var helperService: SMAppService {
 		SMAppService.daemon(plistName: installHelperName + ".plist")
 	}
-	
+
 	/// Re-registers the helper to ensure it is available for use.
 	private func ensureAvailability() async throws {
 		try Self.verifyAvailability()
@@ -113,9 +113,9 @@ actor InstallHelper {
 			}
 		}
 	}
-	
+
 	// MARK: - Package Installation
-	
+
 	/// Installs an App Store update package via the privileged helper.
 	///
 	/// The package is passed as an open file handle rather than a path (C6): the helper reads
@@ -124,13 +124,13 @@ actor InstallHelper {
 	/// target is fixed to the boot volume server-side.
 	func installPackage(fileHandle: FileHandle, receiptData: Data, receiptURL: URL) async throws {
 		try await ensureAvailability()
-		
+
 		let connection = NSXPCConnection(machServiceName: Self.installHelperName)
 		connection.remoteObjectInterface = NSXPCInterface(with: UpdateInstallerProtocol.self)
-		
+
 		connection.activate()
 		defer { connection.invalidate() }
-		
+
 		try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
 			// Once-guard: exactly one resume no matter which callback fires first,
 			// and a no-op for any later interruption/invalidation callbacks.
@@ -143,7 +143,7 @@ actor InstallHelper {
 				}
 				if shouldResume { continuation.resume(with: result) }
 			}
-			
+
 			// The error-handler proxy is invoked for both interruption and invalidation,
 			// including invalidation that occurred before this message was sent, with the
 			// guarantee that exactly one of {reply block, error handler} runs per message.
@@ -153,7 +153,7 @@ actor InstallHelper {
 				resumeOnce(with: .failure(LatestError.installHelperCommunicationFailed))
 				return
 			}
-			
+
 			proxy.performInstallation(ofPackageFileHandle: fileHandle, receiptData: receiptData, receiptURL: receiptURL) { error in
 				if let error {
 					resumeOnce(with: .failure(error))
@@ -171,7 +171,7 @@ actor InstallHelper {
 enum InstallHelperError: LocalizedError {
 	case installHelperNotRegistered
 	case installHelperRequiresApproval
-	
+
 	var errorDescription: String? {
 		switch self {
 		case .installHelperNotRegistered:
@@ -183,4 +183,3 @@ enum InstallHelperError: LocalizedError {
 		}
 	}
 }
-

@@ -13,10 +13,10 @@ class ReleaseNotesErrorViewController: NSViewController {
 
     /// The textField holding the error title
     @IBOutlet private weak var titleTextField: NSTextField!
-    
+
     /// The textField holding the error description
     @IBOutlet private weak var descriptionTextField: NSTextField!
- 
+
     /// Updates the description of the error
     func show(_ error: Error) {
 		if let localizedError = error as? LocalizedError, let failureReason = localizedError.failureReason {
@@ -26,15 +26,15 @@ class ReleaseNotesErrorViewController: NSViewController {
 			descriptionTextField.stringValue = error.localizedDescription
 		}
     }
-    
+
 }
 
 extension ReleaseNotesErrorViewController: ReleaseNotesContentProtocol {
-    
+
     typealias ReleaseNotesContentController = ReleaseNotesErrorViewController
-    
+
     static var StoryboardIdentifier: String {
         return "ReleaseNotesErrorViewControllerIdentifier"
     }
-    
+
 }

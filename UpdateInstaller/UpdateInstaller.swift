@@ -321,7 +321,7 @@ class UpdateInstaller: NSObject, UpdateInstallerProtocol {
 		_ = fchown(fileFD, 0, 0)
 		_ = fchmod(fileFD, 0o755)
 	}
-	
+
 	private func performCommand(_ executablePath: String, arguments: [String], environment: [String: String] = [:]) throws -> (success: Bool, output: String) {
 		let process = Process()
 		process.executableURL = URL(fileURLWithPath: executablePath)
@@ -329,20 +329,20 @@ class UpdateInstaller: NSObject, UpdateInstallerProtocol {
 		if !environment.isEmpty {
 			process.environment = ProcessInfo.processInfo.environment.merging(environment) { _, override in override }
 		}
-		
+
 		let pipe = Pipe()
 		process.standardOutput = pipe
 		process.standardError = pipe
-		
+
 		try process.run()
-		
+
 		// Drain the pipe before waiting, otherwise the child deadlocks against
 		// a full pipe buffer once its output exceeds the buffer's capacity.
 		let data = pipe.fileHandleForReading.readDataToEndOfFile()
 		process.waitUntilExit()
 		let output = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
 		let success = (process.terminationStatus == 0)
-		
+
 		return (success, output)
 	}
 }

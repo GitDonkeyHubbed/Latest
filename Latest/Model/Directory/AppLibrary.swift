@@ -10,30 +10,30 @@ import Foundation
 
 /// Observes the local collection of apps and notifies its owner of changes.
 class AppLibrary {
-	
+
 	/// The handler to be called when apps change locally.
 	typealias UpdateHandler = ([App.Bundle]) -> Void
 	let updateHandler: UpdateHandler
-	
+
 	/// A list of all application bundles that are available locally.
 	var bundles: [App.Bundle] {
 		directoriesLock.withCriticalScope { directories }.flatMap { $0.value.bundles }
 	}
-		
+
 	/// The observed directories. Guarded by `directoriesLock`, as it is read from several queues.
 	private var directories = [URL: AppDirectory]()
-	
+
 	/// Protects `directories`.
 	private let directoriesLock = NSLock()
-	
+
 	/// Serializes directory setup, so concurrent rescans cannot interleave.
 	private let setupQueue = DispatchQueue(label: "AppLibrarySetupQueue")
-	
+
 	/// Initializes the library with the given handler for updates.
 	init(handler: @escaping UpdateHandler) {
 		self.updateHandler = handler
 	}
-	
+
 	private let schedulerQueue = DispatchQueue(label: "AppLibrarySchedulerQueue")
 	private var updateWorkItem: DispatchWorkItem?
 
@@ -48,16 +48,15 @@ class AppLibrary {
 		}
 	}
 
-	
 	// MARK: - Actions
-	
+
 	/// Starts the update checking process
 	func startQuery() {
 		setupQueue.async {
 			self.setupDirectoryObservers()
 		}
 	}
-		
+
 	private func setupDirectoryObservers() {
 		// Use a dispatch group for the initial setup to get contents for all directories before gathering apps
 		let existingDirectories = directoriesLock.withCriticalScope { self.directories }
@@ -107,18 +106,16 @@ class AppLibrary {
 			self.performUpdate()
 		}
 	}
-	
+
 	private func performUpdate() {
 		updateHandler(bundles)
 	}
 
-	
-	
 	// MARK: - Directory Handling
-	
+
 	/// The store handling application directories.
 	private lazy var directoryStore = {
 		AppDirectoryStore(updateHandler: self.startQuery)
 	}()
-	
+
 }

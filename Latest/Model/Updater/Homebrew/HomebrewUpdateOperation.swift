@@ -65,7 +65,6 @@ final class HomebrewUpdateOperation: UpdateOperation, @unchecked Sendable {
 		super.init(bundleIdentifier: bundleIdentifier, appIdentifier: appIdentifier)
 	}
 
-
 	// MARK: - Operation Overrides
 
 	override func execute() {
@@ -119,7 +118,6 @@ final class HomebrewUpdateOperation: UpdateOperation, @unchecked Sendable {
 		self.terminateBrew()
 		return true
 	}
-
 
 	// MARK: - Running Brew
 
@@ -297,7 +295,6 @@ final class HomebrewUpdateOperation: UpdateOperation, @unchecked Sendable {
 
 		return false
 	}
-
 
 	// MARK: - Terminating Brew
 

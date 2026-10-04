@@ -9,21 +9,21 @@
 import AppKit
 
 extension App {
-	
+
 	/// The source of update information.
 	enum Source: String, Equatable {
 		/// No known source had information about this app. It is unsupported by the update checker.
 		case none
-		
+
 		/// The Sparkle Updater is the update source.
 		case sparkle
-		
+
 		/// The Mac App Store is the update source.
 		case appStore
-		
+
 		/// Homebrew is the update source.
 		case homebrew
-		
+
 		/// The icon representing the source.
 		var sourceIcon: NSImage? {
 			switch self {
@@ -37,7 +37,7 @@ extension App {
 				return NSImage(named: "brew")
 			}
 		}
-		
+
 		/// The name of the source.
 		var sourceName: String? {
 			switch self {
@@ -49,7 +49,7 @@ extension App {
 				return NSLocalizedString("AppStoreSource", comment: "The source name of apps loaded from the App Store.")
 			case .homebrew:
 				return NSLocalizedString("HomebrewSource", comment: "The source name for apps checked via the Homebrew package manager.")
-				
+
 			}
 		}
 	}
@@ -62,14 +62,14 @@ extension App.Source {
 	enum SupportState {
 		/// The source is fully supported, including in-app updates.
 		case full
-		
+
 		/// There is some update information available, but it may be incomplete. In-app updates do not work.
 		case limited
-		
+
 		/// The source is unknown and no update information is available.
 		case none
 	}
-	
+
 	/// Whether the source is supported by the app.
 	var supportState: SupportState {
 		switch self {
@@ -83,7 +83,6 @@ extension App.Source {
 	}
 }
 
-
 // MARK: Accessors
 
 extension App.Source.SupportState {
@@ -94,10 +93,10 @@ extension App.Source.SupportState {
 		case .limited: NSImage.statusPartiallyAvailableName
 		case .none: NSImage.statusUnavailableName
 		}
-		
+
 		return NSImage(named: name)!
 	}
-	
+
 	/// Returns a label briefly describing the given status.
 	var label: String {
 		switch self {
@@ -106,7 +105,7 @@ extension App.Source.SupportState {
 		case .none: NSLocalizedString("UnsupportedLabel", comment: "A label used for apps which are not supported by Latest.")
 		}
 	}
-	
+
 	/// A more compact version of the label describing the given status.
 	var compactLabel: String {
 		switch self {

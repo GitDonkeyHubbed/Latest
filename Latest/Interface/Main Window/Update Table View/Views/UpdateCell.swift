@@ -12,33 +12,32 @@ import Cocoa
  The cell that is used in the list of available updates
  */
 class UpdateCell: NSTableCellView {
-	
+
 	// MARK: - View Lifecycle
-	
+
 	/// The label displaying the current version of the app
 	@IBOutlet private weak var nameTextField: NSTextField!
 
     /// The label displaying the current version of the app
     @IBOutlet private weak var currentVersionTextField: NSTextField!
-    
+
     /// The label displaying the newest version available for the app
     @IBOutlet private weak var newVersionTextField: NSTextField!
-	
+
 	/// The stack view holding the cells contents.
 	@IBOutlet private weak var contentStackView: NSStackView!
-	
+
 	/// Label displaying the last modified/update date for the app.
 	@IBOutlet private weak var dateTextField: NSTextField!
-	
+
 	/// The button handling the update of the app.
 	@IBOutlet private weak var updateButton: UpdateButton!
-	
+
 	/// Image view displaying a status indicator for the support status of the app.
 	@IBOutlet private weak var supportStateImageView: NSImageView!
-	
-	
+
 	// MARK: - Update Progress
-	
+
 	/// The app represented by this cell
 	var app: App? {
 		willSet {
@@ -47,20 +46,20 @@ class UpdateCell: NSTableCellView {
 				UpdateQueue.shared.removeObserver(self, for: app.identifier)
 			}
 		}
-		
+
 		didSet {
 			if let app = self.app {
-				UpdateQueue.shared.addObserver(self, to: app.identifier) { [weak self] progress in
+				UpdateQueue.shared.addObserver(self, to: app.identifier) { [weak self] _ in
 					guard let self = self else { return }
 					self.supportStateImageView.isHidden = !self.showSupportState
 				}
 			}
-		
+
 			self.updateButton.app = self.app
 			self.updateContents()
 		}
 	}
-	
+
 	var filterQuery: String? {
 		didSet {
 			if filterQuery != oldValue {
@@ -68,31 +67,30 @@ class UpdateCell: NSTableCellView {
 			}
 		}
 	}
-	
-	
+
 	// MARK: - Utilities
-	
+
 	/// A date formatter for preparing the update date.
 	private lazy var dateFormatter: DateFormatter = {
 		let dateFormatter = DateFormatter()
 		dateFormatter.timeStyle = .none
 		dateFormatter.dateStyle = .short
 		dateFormatter.doesRelativeDateFormatting = true
-		
+
 		return dateFormatter
 	}()
-	
+
 	private func updateContents() {
 		guard let app = self.app, let versionInformation = app.localizedVersionInformation else { return }
-		
+
 		self.updateTitle()
-		
+
 		// Update the contents of the cell
         self.currentVersionTextField.stringValue = versionInformation.current
 		self.newVersionTextField.stringValue = versionInformation.new ?? ""
         self.newVersionTextField.isHidden = !app.updateAvailable
 		self.dateTextField.stringValue = dateFormatter.string(from: app.updateDate)
-		
+
 		// Support state
 		supportStateImageView.isHidden = !showSupportState
 		if showSupportState {
@@ -100,19 +98,19 @@ class UpdateCell: NSTableCellView {
 			supportStateImageView.toolTip = app.supportState.label
 		}
 	}
-	
+
 	/// Whether the status indicator for the apps support state should be visible.
 	private var showSupportState: Bool {
 		guard let app else { return false }
-		
+
 		let isUpdating = switch UpdateQueue.shared.state(for: app.identifier) {
 		case .none, .error: false
-		default : true
+		default: true
 		}
-		
+
 		return !isUpdating && (AppListSettings.shared.includeAppsWithLimitedSupport || AppListSettings.shared.includeUnsupportedApps)
 	}
-	    
+
 	private func updateTitle() {
 		self.nameTextField.attributedStringValue = self.app?.highlightedName(for: self.filterQuery) ?? NSAttributedString()
 	}

@@ -11,10 +11,10 @@ import Sparkle
 
 /// The operation updating Sparkle apps.
 class SparkleUpdateOperation: UpdateOperation, @unchecked Sendable {
-	
+
 	/// The updater used to update this app.
 	private var updater: SPUUpdater?
-	
+
 	// Callback to be called when the operation has been cancelled
 	fileprivate var cancellationCallback: (() -> Void)?
 
@@ -30,12 +30,11 @@ class SparkleUpdateOperation: UpdateOperation, @unchecked Sendable {
 		super.init(bundleIdentifier: bundleIdentifier, appIdentifier: appIdentifier)
 	}
 
-	
 	// MARK: - Operation Overrides
-	
+
 	override func execute() {
 		super.execute()
-		
+
 		// Gather app and app bundle. `Bundle(identifier:)` only ever resolves bundles that are
 		// already loaded into this process, so it cannot find the app being updated. Load it from
 		// its known location instead, keeping the identifier lookup as a last-resort fallback.
@@ -43,7 +42,7 @@ class SparkleUpdateOperation: UpdateOperation, @unchecked Sendable {
 			self.finish(with: LatestError.updateInfoUnavailable)
 			return
 		}
-		
+
 		DispatchQueue.main.async {
 			// A cancel or timeout can win the finish claim before this hop runs. Its teardown has
 			// already completed, so building an updater here would resurrect an operation nothing
@@ -73,7 +72,7 @@ class SparkleUpdateOperation: UpdateOperation, @unchecked Sendable {
 			updater.checkForUpdates()
 		}
 	}
-	
+
 	override func cancel() {
 		// cancel() can be invoked from any thread, but SPUUpdater and Sparkle's cancellation
 		// closure are main-thread-only. Do not touch either here: just flip the cancelled flag
@@ -84,7 +83,7 @@ class SparkleUpdateOperation: UpdateOperation, @unchecked Sendable {
 		super.cancel()
 		self.finish()
 	}
-	
+
 	override func willFinish() {
 		// Single owner of teardown for the user-cancel and normal-completion paths. On a user
 		// cancellation, invoke and consume Sparkle's cancellation closure; a normal success or
@@ -152,10 +151,9 @@ class SparkleUpdateOperation: UpdateOperation, @unchecked Sendable {
 			DispatchQueue.main.sync(execute: work)
 		}
 	}
-	
-	
+
 	// MARK: - Downloading
-	
+
 	/// The estimated total length of the downloaded app bundle.
 	fileprivate var expectedContentLength: UInt64 = 0
 
@@ -189,12 +187,11 @@ class SparkleUpdateOperation: UpdateOperation, @unchecked Sendable {
 	/// cannot reactivate publishing and overwrite a later phase.
 	private var isProgressPublishingActive = true
 
-	
 	// MARK: - Installation
-	
+
 	/// Whether the app is open.
 	fileprivate var isAppOpen = false
-	
+
 	/// One instance of the currently updating application.
 	fileprivate var runningApplication: NSRunningApplication? {
 		return NSWorkspace.shared.runningApplications.first(where: { $0.bundleIdentifier == self.bundleIdentifier })
@@ -204,39 +201,39 @@ class SparkleUpdateOperation: UpdateOperation, @unchecked Sendable {
 
 // MARK: - Driver Implementation
 extension SparkleUpdateOperation: SPUUserDriver {
-	
+
 	// MARK: - Preparing Update
-	
+
 	func show(_ request: SPUUpdatePermissionRequest, reply: @escaping (SUUpdatePermissionResponse) -> Void) {
 		reply(.init(automaticUpdateChecks: false, sendSystemProfile: false))
 	}
-	
+
 	func showUserInitiatedUpdateCheck(cancellation: @escaping () -> Void) {
 		guard !self.isTornDown else { return }
 		self.progressState = .initializing
 	}
-	
+
 	func showUpdateFound(with appcastItem: SUAppcastItem, state: SPUUserUpdateState, reply: @escaping (SPUUserUpdateChoice) -> Void) {
 		// `isTornDown`, not `isCancelled`: a timed-out operation is torn down without being
 		// cancelled, and must not go on to install after it already reported failure.
 		reply(self.isTornDown ? .dismiss : .install)
 	}
-		
+
 	func showUpdateNotFoundWithError(_ error: Error, acknowledgement: @escaping () -> Void) {
 		self.finish(with: error)
 		acknowledgement()
 	}
-	
+
 	func showUpdaterError(_ error: Error, acknowledgement: @escaping () -> Void) {
 		self.finish(with: error)
 		acknowledgement()
 	}
-	
-	func showUpdateInstalledAndRelaunched(_ relaunched: Bool, acknowledgement: @escaping () -> Void) {		
+
+	func showUpdateInstalledAndRelaunched(_ relaunched: Bool, acknowledgement: @escaping () -> Void) {
 		acknowledgement()
 		self.finish()
 	}
-	
+
 	func showUpdateInFocus() {
 		// Noop
 	}
@@ -255,26 +252,26 @@ extension SparkleUpdateOperation: SPUUserDriver {
 
 		self.cancellationCallback = cancellation
 	}
-	
+
 	// MARK: - Downloading Update
-	
+
 	func showDownloadDidReceiveExpectedContentLength(_ expectedContentLength: UInt64) {
 		// This should be only called once per download. If it Uis called more than once, reset the progress
 		self.expectedContentLength = expectedContentLength
 		self.receivedLength = 0
-		
+
 		self.scheduleProgressHandler()
 	}
-	
+
 	func showDownloadDidReceiveData(ofLength length: UInt64) {
 		self.receivedLength += length
 
 		// Expected content length may be wrong, adjust if needed
 		self.expectedContentLength = max(self.expectedContentLength, self.receivedLength)
-		
+
 		self.scheduleProgressHandler()
 	}
-	
+
 	/// Coalesces download activity into at most one progress publication per second.
 	///
 	/// The whole coalescer is main-confined. Sparkle delivers user-driver callbacks on main and
@@ -344,9 +341,8 @@ extension SparkleUpdateOperation: SPUUserDriver {
 		self.isProgressPublishingActive = false
 	}
 
-	
 	// MARK: - Installing Update
-	
+
 	func showDownloadDidStartExtractingUpdate() {
 		// Downloading is over. Retire any trailing download publication first, otherwise it lands
 		// after this and leaves the UI showing download progress during extraction.
@@ -354,19 +350,19 @@ extension SparkleUpdateOperation: SPUUserDriver {
 		guard !self.isTornDown else { return }
 		self.progressState = .extracting(progress: 0)
 	}
-	
+
 	func showExtractionReceivedProgress(_ progress: Double) {
 		guard !self.isTornDown else { return }
 		self.progressState = .extracting(progress: progress)
 	}
-	
+
 	func showReady(toInstallAndRelaunch reply: @escaping (SPUUserUpdateChoice) -> Void) {
 		// Check whether app is open
 		self.isAppOpen = self.runningApplication != nil
-		
+
 		reply(self.isTornDown ? .dismiss : .install)
 	}
-	
+
 	func showInstallingUpdate(withApplicationTerminated applicationTerminated: Bool, retryTerminatingApplication: @escaping () -> Void) {
 		guard !self.isTornDown else { return }
 		self.progressState = .installing
@@ -386,10 +382,9 @@ extension SparkleUpdateOperation: SPUUserDriver {
 			}
 		}
 	}
-		
 
 	// MARK: - Ignored Methods
-	
+
 	func showCanCheck(forUpdates canCheckForUpdates: Bool) {}
 	func dismissUserInitiatedUpdateCheck() {}
 	func showUpdateReleaseNotes(with downloadData: SPUDownloadData) {}
@@ -403,15 +398,15 @@ extension SparkleUpdateOperation: SPUUserDriver {
 	}
 
 	func dismissUpdateInstallation() {}
-	
+
 }
 
 extension SparkleUpdateOperation: SPUUpdaterDelegate {
-	
+
 	func feedURLString(for updater: SPUUpdater) -> String? {
 		// We can try to supply a valid feed as addition to Sparkle's own methods.
 		// For some cases (like DevMate) Sparkle fails to retrieve an appcast by itself.
 		return Sparke.feedURL(from: updater.hostBundle)?.absoluteString
 	}
-	
+
 }

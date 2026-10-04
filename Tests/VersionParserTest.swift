@@ -9,7 +9,6 @@
 import XCTest
 @testable import Latest
 
-
 final class VersionParserTest: XCTestCase {
 
 	func testBuildNumberParsing() {
@@ -20,7 +19,7 @@ final class VersionParserTest: XCTestCase {
 		XCTAssertEqual(VersionParser.parse(buildNumber: "1.2 (r1234)"), "1234")
 		XCTAssertEqual(VersionParser.parse(buildNumber: "ab-1234"), "ab-1234")
 	}
-	
+
 	func testVersionNumberParsing() {
 		XCTAssertEqual(VersionParser.parse(versionNumber: "1234"), "1234")
 		XCTAssertEqual(VersionParser.parse(versionNumber: "v1234"), "1234")
@@ -41,12 +40,12 @@ final class VersionParserTest: XCTestCase {
 		XCTAssertEqual(VersionParser.parse(combinedVersionNumber: "1.2.3.4,321ABC,70"), Version(versionNumber: "1.2.3.4", buildNumber: "321ABC"))
 		XCTAssertEqual(VersionParser.parse(combinedVersionNumber: "2.2.1-763"), Version(versionNumber: "2.2.1", buildNumber: "763"))
 	}
-	
+
 	func testEmptyVersionParsing() {
 		XCTAssertNil(VersionParser.parse(buildNumber: ""))
 		XCTAssertNil(VersionParser.parse(versionNumber: ""))
-		
+
 		XCTAssertEqual(VersionParser.parse(combinedVersionNumber: ""), Version(versionNumber: nil, buildNumber: nil))
 	}
-	
+
 }

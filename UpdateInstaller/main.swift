@@ -23,7 +23,7 @@ class ServiceDelegate: NSObject, NSXPCListenerDelegate {
 		let exportedObject = UpdateInstaller()
 		newConnection.exportedObject = exportedObject
 		newConnection.resume()
-		
+
 		return true
 	}
 }
@@ -38,4 +38,3 @@ listener.resume()
 
 // Keep the main run loop running
 RunLoop.current.run()
-
