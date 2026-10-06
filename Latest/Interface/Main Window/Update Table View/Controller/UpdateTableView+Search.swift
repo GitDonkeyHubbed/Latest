@@ -14,20 +14,20 @@ class UpdateSearchField: NSSearchField {
 	override func cancelOperation(_ sender: Any?) {
 		self.window?.makeFirstResponder(nil)
 	}
-	
+
 }
 
 extension UpdateTableViewController {
-	
+
 	@IBAction func searchFieldTextDidChange(_ sender: NSSearchField) {
 		var searchQuery: String? = sender.stringValue
 		if sender.stringValue.isEmpty {
 			searchQuery = nil
 		}
 		self.scheduleTableViewUpdate(with: self.snapshot.updated(with: searchQuery), animated: false)
-		
+
 		// Reload all visible lists
 		self.scrubber?.reloadData()
 	}
-	
+
 }

@@ -34,17 +34,17 @@ class AppStoreUpdateOperation: UpdateOperation, @unchecked Sendable {
 		self.itemIdentifier = appStoreIdentifier
 		super.init(bundleIdentifier: bundleIdentifier, appIdentifier: appIdentifier)
 	}
-	
+
 	static func prepareForUpdates() throws(InstallHelperError) {
 		// Framework can download and install apps automatically
 		if requiresManualInstallation {
 			try InstallHelper.verifyAvailability()
 		}
 	}
-	
+
 	fileprivate static let requiresManualInstallation: Bool = {
 		let version = ProcessInfo.processInfo.operatingSystemVersion
-		
+
 		return switch version.majorVersion {
 		case 14:
 			ProcessInfo.processInfo.isOperatingSystemAtLeast(.init(majorVersion: 14, minorVersion: 8, patchVersion: 2))
@@ -54,13 +54,12 @@ class AppStoreUpdateOperation: UpdateOperation, @unchecked Sendable {
 			ProcessInfo.processInfo.isOperatingSystemAtLeast(.init(majorVersion: 26, minorVersion: 1, patchVersion: 0))
 		}
 	}()
-	
-	
+
 	// MARK: - Operation Overrides
 
 	override func execute() {
 		super.execute()
-		
+
 		// Construct purchase to receive update
 		let purchase = SSPurchase(itemIdentifier: self.itemIdentifier, account: nil)
 		CKPurchaseController.shared().perform(purchase, withOptions: 0) { [weak self] purchase, _, error, response in
@@ -101,7 +100,7 @@ class AppStoreUpdateOperation: UpdateOperation, @unchecked Sendable {
 			}
 		}
 	}
-	
+
 	override func cancel() {
 		super.cancel()
 
@@ -142,25 +141,25 @@ class AppStoreUpdateOperation: UpdateOperation, @unchecked Sendable {
 		}
 	}
 
-	
 	// MARK: - Manual Installation
-	
+
 	/// Adds a link to the downloaded app store package to retrieve it at a later time.
 	fileprivate static func snapshotAppStorePackage(at path: String) -> URL? {
 		do {
 			let packageURL = URL(fileURLWithPath: path)
 			let fileManager = FileManager.default
-			
-			let hardLinkURL = try fileManager.url(for: .itemReplacementDirectory, in: .userDomainMask, appropriateFor: packageURL, create: true).appending(path: packageURL.lastPathComponent, directoryHint: .notDirectory)
+
+			let hardLinkURL = try fileManager
+				.url(for: .itemReplacementDirectory, in: .userDomainMask, appropriateFor: packageURL, create: true)
+				.appending(path: packageURL.lastPathComponent, directoryHint: .notDirectory)
 			try fileManager.linkItem(at: packageURL, to: hardLinkURL)
-			
+
 			return hardLinkURL
 		} catch {
 			return nil
 		}
 	}
 }
-
 
 // MARK: - Download Observer
 
@@ -215,7 +214,7 @@ extension AppStoreUpdateOperation: CKDownloadQueueObserver {
 			self.finish()
 			return
 		}
-		
+
 		// No manual installation possible, abort with error
 		guard let installerPackageURL, let receiptData = download.metadata.receiptData else {
 			self.finish(with: status.error)
@@ -247,9 +246,9 @@ extension AppStoreUpdateOperation: CKDownloadQueueObserver {
 				self?.finish()
 				return
 			}
-			
+
 			self.progressState = .installing
-			
+
 			// C6: open a file handle on the snapshot and hand that to the helper instead of a
 			// path. The helper reads the exact bytes we opened here into a root-owned copy and
 			// verifies the signature there, so the staged file cannot be swapped between the

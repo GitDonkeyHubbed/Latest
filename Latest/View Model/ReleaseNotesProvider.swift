@@ -10,25 +10,25 @@
 ///
 /// The object provides release notes in a uniform representation and caches remote contents for faster access.
 class ReleaseNotesProvider {
-	
+
 	/// The return value, containing either the desired release notes, or an error if unavailable.
 	typealias ReleaseNotes = Result<NSAttributedString, Error>
-	
+
 	/// Initializes the provider.
 	init() {
 		self.cache = NSCache()
 	}
-	
+
 	/// Tracks the currently requested app.
 	///
 	/// Used to suppress completion calls from older requests.
 	private var currentApp: App?
-	
+
 	/// Provides release notes for the given app.
 	func releaseNotes(for app: App, with completion: @escaping (ReleaseNotes) -> Void) {
 		currentApp = app
 		let cacheKey = app.identifier.absoluteString as NSString
-		
+
 		if let releaseNotes = self.cache.object(forKey: cacheKey) {
 			completion(.success(releaseNotes))
 			return
@@ -38,34 +38,33 @@ class ReleaseNotesProvider {
 			if case .success(let text) = releaseNotes {
 				self.cache.setObject(text, forKey: cacheKey)
 			}
-			
+
 			/// Release notes may be returned late or updated while another app was already requested. Don't forward this update, just cache in case of success.
 			guard self.currentApp == app else { return }
-			
+
 			completion(releaseNotes)
 		}
 	}
-	
-	
+
 	// MARK: - Release Notes Handling
-	
+
 	/// The cache for release notes content.
 	///
 	/// All content is cached, since any given release notes object requires some sort of modification.
 	private var cache: NSCache<NSString, NSAttributedString>
-	
+
 	/// Object loading HTML content for any given URL.
 	private lazy var webContentLoader = WebContentLoader()
-	
+
 	private func loadReleaseNotes(for app: App, with completion: @escaping (ReleaseNotes) -> Void) {
 		if let releaseNotes = app.releaseNotes {
 			switch releaseNotes {
-				case .html(let html):
-					completion(self.releaseNotes(from: html, baseURL: nil))
-				case .url(let url):
-					self.releaseNotes(from: url, with: completion)
-				case .encoded(let data):
-					completion(self.releaseNotes(from: data))
+			case .html(let html):
+				completion(self.releaseNotes(from: html, baseURL: nil))
+			case .url(let url):
+				self.releaseNotes(from: url, with: completion)
+			case .encoded(let data):
+				completion(self.releaseNotes(from: data))
 			}
 		} else if let error = app.error {
 			completion(.failure(error))
@@ -73,8 +72,7 @@ class ReleaseNotesProvider {
 			completion(.failure(LatestError.releaseNotesUnavailable))
 		}
 	}
-	
-	
+
 	/// Fetches release notes from the given URL.
 	private func releaseNotes(from url: URL, with completion: @escaping (ReleaseNotes) -> Void) {
 		webContentLoader.load(from: url) { result in
@@ -86,29 +84,28 @@ class ReleaseNotesProvider {
 			}
 		}
 	}
-	
-	
+
 	/// Returns rich text from the given HTML string.
 	private func releaseNotes(from html: String, baseURL: URL?) -> ReleaseNotes {
 		guard let data = html.data(using: .utf16) else {
 			return .failure(LatestError.releaseNotesUnavailable)
 		}
-		
+
 		if let baseURL, let string = NSAttributedString(html: data, baseURL: baseURL, documentAttributes: nil) {
 			return .success(string)
 		}
-		
+
 		guard let string = NSAttributedString(html: data, documentAttributes: nil) else {
 			return .failure(LatestError.releaseNotesUnavailable)
 		}
-		
+
 		return .success(string)
 	}
 
 	/// Extracts release notes from the given data.
 	private func releaseNotes(from data: Data) -> ReleaseNotes {
-		var options : [NSAttributedString.DocumentReadingOptionKey: Any] = [.documentType: NSAttributedString.DocumentType.html]
-		
+		var options: [NSAttributedString.DocumentReadingOptionKey: Any] = [.documentType: NSAttributedString.DocumentType.html]
+
 		var string: NSAttributedString
 		do {
 			string = try NSAttributedString(data: data, options: options, documentAttributes: nil)
@@ -121,14 +118,14 @@ class ReleaseNotesProvider {
 		// If anyone has a better idea for checking if the data is valid HTML or plain text, feel free to fix.
 		if string.string.split(separator: "\n").count == 1 {
 			options[.documentType] = NSAttributedString.DocumentType.plain
-			
+
 			do {
 				string = try NSAttributedString(data: data, options: options, documentAttributes: nil)
 			} catch let error {
 				return .failure(error)
 			}
 		}
-		
+
 		return .success(string)
 	}
 

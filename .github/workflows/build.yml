@@ -20,7 +20,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Check out
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install SwiftLint (if the runner image lacks it)
         run: command -v swiftlint >/dev/null || brew install swiftlint
@@ -36,7 +36,7 @@ jobs:
     timeout-minutes: 45
     steps:
       - name: Check out
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Select newest Xcode 26
         run: |

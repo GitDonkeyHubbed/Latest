@@ -8,16 +8,16 @@
 
 /// Provides errors within the app's error domain.
 enum LatestError: LocalizedError {
-	
+
 	/// The update info for a given app could not be loaded.
 	case updateInfoUnavailable
-	
+
 	/// An error to be used when no release notes were found for a given app.
 	case releaseNotesUnavailable
-	
+
 	/// An error raised by the App Store updater in case the user is not signed in.
 	case notSignedInToAppStore
-	
+
 	/// The communication with an install helper failed.
 	case installHelperCommunicationFailed
 
@@ -34,22 +34,21 @@ enum LatestError: LocalizedError {
 	case homebrewUpgradeNotPerformed
 
 	case custom(title: String, description: String?)
-	
-	
+
 	// MARK: - Localized Error Protocol
-	
+
 	/// The localized description of the error.
 	var localizedDescription: String {
 		switch self {
-			case .updateInfoUnavailable:
-				return NSLocalizedString("UpdateInfoUnavailableError", comment: "Short description of error stating that update info could not be retrieved for a given app.")
-				
-			case .releaseNotesUnavailable:
-				return NSLocalizedString("ReleaseNotesUnavailableError", comment: "Short description of error that no release notes were found.")
-				
-			case .notSignedInToAppStore:
-				return NSLocalizedString("AppStoreNotSignedInError", comment: "Short description of error when no update was found for a particular app.")
-			
+		case .updateInfoUnavailable:
+			return NSLocalizedString("UpdateInfoUnavailableError", comment: "Short description of error stating that update info could not be retrieved for a given app.")
+
+		case .releaseNotesUnavailable:
+			return NSLocalizedString("ReleaseNotesUnavailableError", comment: "Short description of error that no release notes were found.")
+
+		case .notSignedInToAppStore:
+			return NSLocalizedString("AppStoreNotSignedInError", comment: "Short description of error when no update was found for a particular app.")
+
 		case .installHelperCommunicationFailed:
 			return NSLocalizedString("InstallHelperCommunicationFailedError", comment: "Short description of an error when communicating with the apps install helper.")
 
@@ -65,26 +64,26 @@ enum LatestError: LocalizedError {
 		case .homebrewUpgradeNotPerformed:
 			return NSLocalizedString("HomebrewUpgradeNotPerformedError", value: "Homebrew did not update the app.", comment: "Short description of an error stating that Homebrew reported success without upgrading anything.")
 
-			case .custom(let title, _):
-				return title
+		case .custom(let title, _):
+			return title
 		}
 	}
-	
+
 	var errorDescription: String? {
 		localizedDescription
 	}
-	
+
 	var failureReason: String? {
 		switch self {
 		case .updateInfoUnavailable:
 			return NSLocalizedString("UpdateInfoUnavailableErrorFailureReason", comment: "Error message stating that update info could not be retrieved for a given app.")
-			
+
 		case .releaseNotesUnavailable:
 			return NSLocalizedString("ReleaseNotesUnavailableErrorFailureReason", comment: "Error message that no release notes were found.")
-			
+
 		case .notSignedInToAppStore:
 			return nil
-			
+
 		case .installHelperCommunicationFailed:
 			return nil
 
@@ -100,22 +99,22 @@ enum LatestError: LocalizedError {
 		case .homebrewUpgradeNotPerformed:
 			return NSLocalizedString("HomebrewUpgradeNotPerformedErrorFailureReason", value: "Homebrew considers the installed version up to date, but the app on disk reports an older version.", comment: "Error message stating that Homebrew reported success without upgrading anything.")
 
-		case .custom(_ , let description):
+		case .custom(_, let description):
 			return description
 		}
 	}
-	
+
 	var recoverySuggestion: String? {
 		switch self {
 		case .updateInfoUnavailable:
 			return nil
-			
+
 		case .releaseNotesUnavailable:
 			return nil
-			
+
 		case .notSignedInToAppStore:
 			return NSLocalizedString("AppStoreNotSignedInErrorRecoverySuggestion", comment: "Error description when the attempt to update an app from the App Store failed because the user is not signed in with their App Store account.")
-			
+
 		case .installHelperCommunicationFailed:
 			return NSLocalizedString("AppStoreNotSignedInErrorRecoverySuggestion", comment: "Error description when the attempt to update an app from the App Store failed because the user is not signed in with their App Store account.")
 
@@ -131,7 +130,7 @@ enum LatestError: LocalizedError {
 		case .homebrewUpgradeNotPerformed:
 			return NSLocalizedString("HomebrewUpgradeNotPerformedErrorRecoverySuggestion", value: "Update the app using its own updater, or reinstall the cask with “brew reinstall --cask” in Terminal.", comment: "Recovery suggestion when Homebrew reported success without upgrading anything.")
 
-		case .custom(_ , _):
+		case .custom:
 			return nil
 		}
 	}

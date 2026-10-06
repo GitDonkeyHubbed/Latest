@@ -2,11 +2,9 @@
 # (brew install swiftlint). CI runs the same in the "SwiftLint" job of
 # .github/workflows/build.yml.
 #
-# Starting posture: default rule set, warnings do not fail CI, errors do.
-# Default error-level rules the codebase currently trips are downgraded to
-# warnings so CI is green from day one (force_cast, force_try, identifier
-# naming, attribute spacing, an oversized type body and one very long line).
-# Tighten them back to `error` rule by rule as the call sites get cleaned up.
+# Warnings are annotated on PRs but do not fail CI; errors do. The codebase is
+# kept at zero warnings so new ones stand out. Rules run at their default
+# severities; only the thresholds below are tuned to this codebase.
 
 excluded:
   - Sparkle
@@ -15,16 +13,25 @@ excluded:
   - DerivedData
   - .build
 
-force_cast: warning
-force_try: warning
-attribute_name_spacing: warning
-
 line_length:
   warning: 150
   error: 500
   ignores_urls: true
   ignores_comments: true
   ignores_function_declarations: true
+  # NSLocalizedString comments must stay single string literals so genstrings
+  # can extract them for translators, so those lines cannot be wrapped.
+  excluded_lines_patterns: ['NSLocalizedString\(']
+
+file_length:
+  # Code is documented densely; measure code, not commentary.
+  ignore_comment_only_lines: true
+
+nesting:
+  # Codable models nest their payload types
+  # (UpdateRepository.Entry.MinimumOS.Version) and their CodingKeys.
+  type_level: 3
+  ignore_coding_keys: true
 
 type_body_length:
   warning: 350
@@ -35,10 +42,6 @@ cyclomatic_complexity:
   error: 40
 
 identifier_name:
-  # Existing UpperCamelCase constants (e.g. UpdateDateKey) and underscored
-  # test fixtures (v14_8_1) are reported, not failed, for now.
-  severity: warning
-  validates_start_with_lowercase: warning
   allowed_symbols: ["_"]
   min_length: 2
   excluded: [id, x, y, i, j]

@@ -9,9 +9,9 @@
 import AppKit
 
 extension MainWindowController: NSToolbarDelegate {
-	
+
 	// MARK: - Toolbar Delegate
-	
+
 	func toolbarDefaultItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {
 		var items: [NSToolbarItem.Identifier] = [
 			.flexibleSpace,
@@ -19,20 +19,20 @@ extension MainWindowController: NSToolbarDelegate {
 			.checkForUpdatesActionItem,
 			.updateAllActionItem
 		]
-		
+
 		// Items sit in sidebar
 		items.append(.sidebarTrackingSeparator)
-		
+
 		return items
 	}
-	
+
 	func toolbarAllowedItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {
 		toolbarDefaultItemIdentifiers(toolbar)
 	}
-	
+
 	func toolbar(_ toolbar: NSToolbar, itemForItemIdentifier itemIdentifier: NSToolbarItem.Identifier, willBeInsertedIntoToolbar flag: Bool) -> NSToolbarItem? {
 		let item = NSToolbarItem(itemIdentifier: itemIdentifier)
-		
+
 		switch itemIdentifier {
 		case .progressIndicatorItem:
 			item.view = progressIndicator
@@ -47,10 +47,10 @@ extension MainWindowController: NSToolbarDelegate {
 		default:
 			return nil
 		}
-		
+
 		return item
 	}
-	
+
 }
 
 private extension NSToolbarItem.Identifier {
@@ -59,7 +59,7 @@ private extension NSToolbarItem.Identifier {
 
 	/// Action for checking for updates
 	static let checkForUpdatesActionItem = NSToolbarItem.Identifier("latest.checkForUpdatesActionItem")
-	
+
 	/// Action for updating all apps.
 	static let updateAllActionItem = NSToolbarItem.Identifier("latest.updateAllActionItem")
 }

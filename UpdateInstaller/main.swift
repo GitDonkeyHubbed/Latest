@@ -12,7 +12,8 @@ import os
 /// Code signing requirement for the main app: only Latest may connect to this daemon.
 /// `anchor apple generic` ties the requirement to Apple's certificate chain, so a
 /// locally self-signed binary reusing the identifier and team OU cannot satisfy it.
-private let appCodeSigningRequirement = "anchor apple generic and identifier \"com.max-langer.Latest\" and certificate leaf[subject.OU] = \"3XRW39J2YH\""
+/// The literal is kept intact on one line (not wrapped) because it is security-relevant.
+private let appCodeSigningRequirement = "anchor apple generic and identifier \"com.max-langer.Latest\" and certificate leaf[subject.OU] = \"3XRW39J2YH\"" // swiftlint:disable:this line_length
 
 class ServiceDelegate: NSObject, NSXPCListenerDelegate {
 	/// This method is where the NSXPCListener configures, accepts, and resumes a new incoming NSXPCConnection.
@@ -23,7 +24,7 @@ class ServiceDelegate: NSObject, NSXPCListenerDelegate {
 		let exportedObject = UpdateInstaller()
 		newConnection.exportedObject = exportedObject
 		newConnection.resume()
-		
+
 		return true
 	}
 }
@@ -38,4 +39,3 @@ listener.resume()
 
 // Keep the main run loop running
 RunLoop.current.run()
-

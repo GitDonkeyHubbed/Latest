@@ -10,40 +10,40 @@ import Foundation
 
 /// The abstract update operation used for updating apps.
 class UpdateOperation: StatefulOperation, @unchecked Sendable {
-	
+
 	/// Encapsulates different states that may be active during the update process.
 	enum ProgressState {
 		/// No update is occurring at the moment.
 		case none
-		
+
 		/// The update is currently waiting to be executed. This may happen due to external constraints like the Mac App Store update queue.
 		case pending
-		
+
 		/// The download is currently initializing. This may be fetching update information from a server.
 		case initializing
-		
+
 		/// The new version is currently downloading. Loaded size defines the already downloaded bytes. Total size defines the final size of the download.
 		case downloading(loadedSize: Int64, totalSize: Int64)
-		
+
 		/// The update is being extracted. The extraction progress is given.
 		case extracting(progress: Double)
-		
+
 		/// The update is currently installing.
 		case installing
-		
+
 		/// An error occurred during updating.
 		case error(Error)
-		
+
 		/// The update is currently being cancelled.
 		case cancelling
 	}
-	
+
 	/// The app that is updated by this operation.
 	let bundleIdentifier: String
-	
+
 	/// The identifier of the updated app.
 	let appIdentifier: App.Bundle.Identifier
-	
+
 	/// The handler forwarding the current progress state.
 	var progressHandler: UpdateQueue.ProgressHandler? {
 		didSet {
@@ -51,7 +51,7 @@ class UpdateOperation: StatefulOperation, @unchecked Sendable {
 			self.progressHandler?(self.appIdentifier)
 		}
 	}
-	
+
 		/// The current update state.
 	var progressState: UpdateOperation.ProgressState = .pending {
 		didSet {
@@ -60,14 +60,12 @@ class UpdateOperation: StatefulOperation, @unchecked Sendable {
 		}
 	}
 
-	
 	/// Initializes the operation with the given app and progress handler.
 	init(bundleIdentifier: String, appIdentifier: App.Bundle.Identifier) {
 		self.bundleIdentifier = bundleIdentifier
 		self.appIdentifier = appIdentifier
 	}
-	
-	
+
 	// MARK: - Operation sub-classing
 
 	override func execute() {
@@ -91,7 +89,6 @@ class UpdateOperation: StatefulOperation, @unchecked Sendable {
 
 		super.willFinish()
 	}
-
 
 	// MARK: - Watchdog
 
@@ -123,7 +120,7 @@ class UpdateOperation: StatefulOperation, @unchecked Sendable {
 
 	/// Starts observing the operation for inactivity.
 	private func startWatchdog() {
-		self.watchdogQueue.async {
+		self.watchdogQueue.async { [self] in
 			let timer = DispatchSource.makeTimerSource(queue: self.watchdogQueue)
 			timer.setEventHandler { [weak self] in
 				guard let self = self, !self.isFinished, !self.isCancelled else { return }
@@ -182,11 +179,30 @@ class UpdateOperation: StatefulOperation, @unchecked Sendable {
 	/// Called when no progress occurred for `inactivityTimeout`.
 	///
 	/// The teardown only runs when the timeout actually finishes the operation;
-	/// if a regular finish wins the race, no teardown is performed.
+	/// if a regular finish wins the race, no teardown is performed. A subclass may instead
+	/// take over the timeout via `deferTimeoutFinish()`.
 	final func handleTimeout() {
+		if self.deferTimeoutFinish() {
+			// The subclass now owns the finish. Retire the watchdog so activity reported while
+			// it winds down cannot re-arm the timer and fire the timeout a second time.
+			self.stopWatchdog()
+			return
+		}
+
 		self.finish(with: LatestError.updateTimedOut, beforeFinish: {
 			self.timeoutTeardown()
 		})
+	}
+
+	/// Gives subclasses the chance to postpone the timeout finish until in-flight work has
+	/// actually stopped, e.g. an external process that must exit before the next update may start.
+	///
+	/// Returning true transfers the finish to the subclass: it must stop the work and eventually
+	/// finish with `LatestError.updateTimedOut`, and `timeoutTeardown()` is not called. Returning
+	/// false (the default) finishes immediately. Called on the watchdog queue, so it must never
+	/// block waiting for the work to stop.
+	func deferTimeoutFinish() -> Bool {
+		return false
 	}
 
 	/// Tears down in-flight work after the operation timed out.

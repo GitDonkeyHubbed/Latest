@@ -1,4 +1,30 @@
 # Unreleased Changes
+This update focuses on reliability and security fixes across update checking and installing.
+
+- Security improvements:
+	- Updated the Sparkle update framework to 2.10.0, which includes its latest security fixes
+	- Hardened the helper that installs updates with administrator privileges
+	- Only Apple-signed Mac App Store packages are installed by the privileged helper
+	- Clearer error messages when the helper declines to install an update
+
+- Improvements to update checking:
+	- Fix missed updates for apps with dash-separated versions (for example 2.4.1-2)
+	- Fix beta and pre-release versions being treated as equal to the final release
+	- More consistent version comparisons between build numbers
+	- A single malformed Homebrew entry no longer hides all Homebrew updates
+
+- Improvements to updating:
+	- Sparkle updates no longer continue in the background after they timed out
+	- Homebrew updates no longer collide with a timed-out previous upgrade
+
+- Various interface improvements:
+	- Fix release notes sometimes showing for the wrong app after switching quickly
+	- Fix the search filter occasionally being reset during an update check
+	- Fix app icons and Touch Bar items occasionally getting out of sync with the app list
+	- Apps from a removed location now disappear from the list
+
+- Reduced memory use during long sessions and repeated update checks.
+
 
 # 0.10.3
 Fixes a crash that may occur after updating to 0.10.2.

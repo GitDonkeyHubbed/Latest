@@ -23,37 +23,36 @@ private final class DisplayLinkProxy: NSObject {
 class DisplayLink: NSObject {
 
 	/// The amount of time the display link should be running. If  set to `nil`, the display link runs indefinitely.
-    private(set) var duration : Double?
+    private(set) var duration: Double?
 
 	/// An optional completion handler called after the display link stopped animating.
-    var completionHandler : (() -> ())?
+    var completionHandler: (() -> Void)?
 
 	/// The current  animation progress. Only useful if a duration has been set.
-	private(set) var progress : Double = 0
+	private(set) var progress: Double = 0
 
 	/// The view driving the display link on macOS 14 and later. If no view is given, the main screen drives the link instead.
-	private weak var view : NSView?
+	private weak var view: NSView?
 
 	/// Backing storage for the modern display link. Typed `Any` since `CADisplayLink` is unavailable on macOS 13.
-	private var modernDisplayLink : Any?
+	private var modernDisplayLink: Any?
 
 	/// The display link driving the animation on macOS 14 and later.
 	@available(macOS 14.0, *)
-	private var caDisplayLink : CADisplayLink? {
+	private var caDisplayLink: CADisplayLink? {
 		get { return self.modernDisplayLink as? CADisplayLink }
 		set { self.modernDisplayLink = newValue }
 	}
 
 	/// The display link driving the animation on macOS 13.
-	private var legacyDisplayLink : CVDisplayLink?
+	private var legacyDisplayLink: CVDisplayLink?
 
 	/// Frames used to calculate the animation progress, normalized to a 60 FPS timescale.
-    private var _currentFrame : Double = 0
-    private var _frames : Double = 0
+    private var _currentFrame: Double = 0
+    private var _frames: Double = 0
 
 	/// The callback called for each animation step.
-    private(set) var callback : ((_ progress: Double) -> Void)!
-
+    private(set) var callback: ((_ progress: Double) -> Void)!
 
 	// MARK: - Initialization
 
@@ -67,10 +66,18 @@ class DisplayLink: NSObject {
         self.duration = duration
         self.callback = callback
 
-		if #available(macOS 14.0, *) {
-			// The CADisplayLink is created lazily in start(), since it retains its target while scheduled.
-		} else {
-			func displayLinkOutputCallback(_ displayLink: CVDisplayLink, _ inNow: UnsafePointer<CVTimeStamp>, _ inOutputTime: UnsafePointer<CVTimeStamp>, _ flagsIn: CVOptionFlags, _ flagsOut: UnsafeMutablePointer<CVOptionFlags>, _ displayLinkContext: UnsafeMutableRawPointer?) -> CVReturn {
+		// On macOS 14 and later, the CADisplayLink is created lazily in start(), since it retains its target while scheduled.
+		if #unavailable(macOS 14.0) {
+			// The parameter list is mandated by CVDisplayLinkOutputCallback.
+			// swiftlint:disable:next function_parameter_count
+			func displayLinkOutputCallback(
+				_ displayLink: CVDisplayLink,
+				_ inNow: UnsafePointer<CVTimeStamp>,
+				_ inOutputTime: UnsafePointer<CVTimeStamp>,
+				_ flagsIn: CVOptionFlags,
+				_ flagsOut: UnsafeMutablePointer<CVOptionFlags>,
+				_ displayLinkContext: UnsafeMutableRawPointer?
+			) -> CVReturn {
 				guard let displayLinkContext else { return kCVReturnInvalidArgument }
 
 				unsafeBitCast(displayLinkContext, to: DisplayLink.self).displayTick()
@@ -97,16 +104,13 @@ class DisplayLink: NSObject {
 		}
 	}
 
-
 	// MARK: - Animation
 
     @objc fileprivate func displayTick() {
 		// Determine the total number of frames, normalized to a 60 FPS timescale.
 		if let duration = self.duration {
 			self._frames = duration * 60
-		}
-
-		else {
+		} else {
 			self._frames = 1
 		}
 
@@ -131,7 +135,6 @@ class DisplayLink: NSObject {
         }
 	}
 
-
 	// MARK: - Actions
 
 	/// Starts the display link.
@@ -147,7 +150,9 @@ class DisplayLink: NSObject {
 				let proxy = DisplayLinkProxy()
 				proxy.target = self
 
-				let displayLink = self.view?.displayLink(target: proxy, selector: #selector(DisplayLinkProxy.displayTick)) ?? NSScreen.main?.displayLink(target: proxy, selector: #selector(DisplayLinkProxy.displayTick))
+				let selector = #selector(DisplayLinkProxy.displayTick)
+				let displayLink = self.view?.displayLink(target: proxy, selector: selector)
+					?? NSScreen.main?.displayLink(target: proxy, selector: selector)
 				displayLink?.add(to: .main, forMode: .common)
 				self.caDisplayLink = displayLink
 			}

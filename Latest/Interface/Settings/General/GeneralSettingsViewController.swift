@@ -14,9 +14,9 @@ class GeneralSettingsViewController: SettingsTabItemViewController {
 		super.viewDidLoad()
 		updateInstallHelperBannerVisibility()
 	}
-	
+
 	// MARK: - Check Includes
-	
+
 	/// Whether apps with limited support should be included in the app list.
 	@objc var includeAppsWithLimitedSupport: Bool {
 		get {
@@ -26,7 +26,7 @@ class GeneralSettingsViewController: SettingsTabItemViewController {
 			AppListSettings.shared.includeAppsWithLimitedSupport = newValue
 		}
 	}
-	
+
 	/// Whether apps with no support should be included in the app list.
 	@objc var includeUnsupportedApps: Bool {
 		get {
@@ -36,10 +36,9 @@ class GeneralSettingsViewController: SettingsTabItemViewController {
 			AppListSettings.shared.includeUnsupportedApps = newValue
 		}
 	}
-	
-	
+
 	// MARK: - Install Helper
-	
+
 	@IBOutlet weak var installHelperOptInView: NSView!
 
 	private func updateInstallHelperBannerVisibility() {
@@ -50,11 +49,11 @@ class GeneralSettingsViewController: SettingsTabItemViewController {
 			installHelperOptInView.isHidden = false
 		}
 	}
-	
+
 	@IBAction func registerInstallHelper(_ sender: Any) {
 		AppStoreUpdateSettings.alwaysPerformManualUpdates.active = false
 		try? InstallHelper.installHelper()
-		
+
 		updateInstallHelperBannerVisibility()
 	}
 
