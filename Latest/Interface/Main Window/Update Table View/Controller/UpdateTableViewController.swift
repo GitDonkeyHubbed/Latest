@@ -80,9 +80,7 @@ class UpdateTableViewController: NSViewController, NSMenuItemValidation, NSTable
 			self.updateTitleAndBatch()
 		}
 		
-		if #available(macOS 11, *) {
-			self.updatesLabel.isHidden = true
-		}
+		self.updatesLabel.isHidden = true
 		
 		if #available(macOS 26, *) {
 			self.topTableConstraint.constant = 0
@@ -205,34 +203,23 @@ class UpdateTableViewController: NSViewController, NSMenuItemValidation, NSTable
 				tableView.rowActionsVisible = false
             })
 			
-			if #available(macOS 11.0, *) {
-				action.image = NSImage(systemSymbolName: "square.and.arrow.down", accessibilityDescription: nil)
-			}
-            
-			// Teal on macOS 11 / below is the same as Cyan on macOS 12+
-			if #available(macOS 12.0, *) {
-				action.backgroundColor = .systemCyan
-			} else {
-				action.backgroundColor = .systemTeal
-			}
-            
+			action.image = NSImage(systemSymbolName: "square.and.arrow.down", accessibilityDescription: nil)
+			action.backgroundColor = .systemCyan
+			
             return [action]
         } else if edge == .leading {
 			let open = NSTableViewRowAction(style: .regular, title: NSLocalizedString("OpenAction", comment: "Action to open a given app.")) { action, row in
 				self.openApp(at: row)
 				tableView.rowActionsVisible = false
 			}
+			open.image = NSImage(systemSymbolName: "arrow.up.forward.app", accessibilityDescription: nil)
 			
             let reveal = NSTableViewRowAction(style: .regular, title: NSLocalizedString("RevealAction", comment: "Revea in Finder Row action"), handler: { (action, row) in
                 self.showAppInFinder(at: row)
 				tableView.rowActionsVisible = false
             })
 			reveal.backgroundColor = .systemGray
-			
-			if #available(macOS 11.0, *) {
-				open.image = NSImage(systemSymbolName: "arrow.up.forward.app", accessibilityDescription: nil)
-				reveal.image = NSImage(systemSymbolName: "finder", accessibilityDescription: nil)
-			}
+			reveal.image = NSImage(systemSymbolName: "finder", accessibilityDescription: nil)
 			
             return [open, reveal]
         }
@@ -500,13 +487,8 @@ class UpdateTableViewController: NSViewController, NSMenuItemValidation, NSTable
 		statusText = String.localizedStringWithFormat(format, count)
         
 		self.scrubber?.reloadData()
-		
-		if #available(macOS 11, *) {
-			self.view.window?.subtitle = statusText
-		} else {
-			self.updatesLabel.stringValue = statusText
-		}
-    }
+		self.view.window?.subtitle = statusText
+	}
 	
 	private func ensureSelection() {
 		self.selectApp(at: self.selectedAppIndex)

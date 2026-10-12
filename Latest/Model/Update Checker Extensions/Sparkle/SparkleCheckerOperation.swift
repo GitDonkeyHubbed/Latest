@@ -1,5 +1,5 @@
 //
-//  MacAppStoreUpdateCheckerOperation.swift
+//  SparkleUpdateCheckerOperation.swift
 //  Latest
 //
 //  Created by Max Langer on 03.10.19.

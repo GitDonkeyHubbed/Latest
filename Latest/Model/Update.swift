@@ -65,7 +65,7 @@ extension App {
 		
 		/// Whether the update is performed using a built in updater.
 		var usesBuiltInUpdater: Bool {
-			externalUpdaterName == nil
+			externalUpdaterName == nil || source == .appStore
 		}
 		
 		/// The name of the external updater used to update this app.
@@ -76,8 +76,8 @@ extension App {
 		
 		// MARK: - Actions
 				
-		/// Updates the app. This is a sub-classing hook. The default implementation opens the app.
-		final func perform() {
+		/// Updates the app.
+		final func perform(isBulkUpdate: Bool) {
 			guard !self.isUpdating else {
 				fatalError("Attempt to perform update on app that is already updating.")
 			}
@@ -86,7 +86,7 @@ extension App {
 				fatalError("Attempt to perform update on app that is already up to date.")
 			}
 			
-			self.updateAction.perform(with: self.app)
+			self.updateAction.perform(with: self.app, isBulkUpdate: isBulkUpdate)
 		}
 		
 		/// Cancels the scheduled update for this app.
@@ -156,12 +156,12 @@ extension App.Update {
 		case external(label: String, block: UpdateAction)
 		
 		/// Performs the update for the given bundle.
-		func perform(with bundle: App.Bundle) {
+		func perform(with bundle: App.Bundle, isBulkUpdate: Bool) {
 			switch self {
 			case .builtIn(let block):
 				block(bundle)
 			case .external(_, let block):
-				block(bundle)
+				if !isBulkUpdate { block(bundle) }
 			}
 		}
 	}

@@ -49,13 +49,7 @@ class UpdateButtonCell: NSButtonCell {
 	}
 	
 	/// Convenience for accessing the tint of the button.
-	private static var tintColor: NSColor {
-		if #available(OSX 10.14, *) {
-			return .controlAccentColor
-		} else {
-			return .systemBlue
-		}
-	}
+	private static let tintColor: NSColor = .controlAccentColor
 	
 	/// The progress to be rendered when `.progress` is set as the content type. Animates the transition.
 	private var _oldUpdateProgress: Double = 0.0
@@ -197,11 +191,7 @@ class UpdateButtonCell: NSButtonCell {
 		
 	private func indicatorColor(for color: NSColor) -> NSColor {
 		let tintColor: NSColor = (self.backgroundStyle == .emphasized ? .alternateSelectedControlTextColor : color)
-		if #available(OSX 10.14, *) {
-			return (self.isHighlighted ? tintColor.withSystemEffect(.pressed) : tintColor)
-		} else {
-			return (self.isHighlighted ? tintColor.shadow(withLevel: 0.8)! : tintColor)
-		}
+		return (self.isHighlighted ? tintColor.withSystemEffect(.pressed) : tintColor)
 	}
 	
 	private func renderPauseBar(offset: CGFloat, from center: CGPoint, in controlView: NSView) {

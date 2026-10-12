@@ -35,8 +35,7 @@ enum BundleCollector {
 				continue
 			}
 			
-			let expectedExtension = if #available(macOS 11.0, *) { appExtension } else { "app" }
-			if bundleURL.pathExtension == expectedExtension, let bundle = bundle(forAppAt: bundleURL) {
+			if bundleURL.pathExtension == appExtension, let bundle = bundle(forAppAt: bundleURL) {
 				bundles.append(bundle)
 			}
 		}

@@ -58,13 +58,8 @@ class MainWindowController: NSWindowController, NSMenuItemValidation, NSMenuDele
     
 		self.window?.titlebarAppearsTransparent = true
 		self.window?.title = Bundle.main.localizedInfoDictionary?[kCFBundleNameKey as String] as! String
+		self.window?.toolbarStyle = .unified
 		
-		if #available(macOS 11.0, *) {
-			self.window?.toolbarStyle = .unified
-		} else {
-			self.window?.titleVisibility = .hidden
-		}
-        
 		// Set ourselves as the view menu delegate
 		NSApplication.shared.mainMenu?.item(at: MainMenuItem.view.rawValue)?.submenu?.delegate = self
 		
@@ -94,10 +89,26 @@ class MainWindowController: NSWindowController, NSMenuItemValidation, NSMenuDele
     
     /// Open all apps that have an update available. If apps from the Mac App Store are there as well, open the Mac App Store
     @IBAction func updateAll(_ sender: Any?) {
+		let apps = UpdateCheckCoordinator.shared.appProvider.updatableApps
+		
+		// Check if there are app store updates
+		if apps.contains(where: { $0.bundle.source == .appStore }) {
+			do {
+				try AppStoreUpdateOperation.prepareForUpdates()
+			} catch {
+				let updatesPage = URL(string: "macappstore://apps.apple.com/updates")!
+				if !AppStoreUpdateSettings.alwaysPerformManualUpdates.active {
+					UpdateInstallHelperAlert.present(with: error, fallbackURL: updatesPage)
+				} else {
+					NSWorkspace.shared.open(updatesPage)
+				}
+			}
+		}
+		
 		// Iterate all updatable apps and perform update
-		UpdateCheckCoordinator.shared.appProvider.updatableApps.forEach({ app in
+		apps.forEach({ app in
 			if !app.isUpdating {
-				app.performUpdate()
+				app.performUpdate(isBulkUpdate: true)
 			}
 		})
     }
